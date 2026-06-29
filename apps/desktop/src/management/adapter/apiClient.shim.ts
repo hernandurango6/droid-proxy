@@ -7,6 +7,7 @@ import { REQUEST_TIMEOUT_MS } from "@droidproxy/management-ui/utils/constants";
 import { isRecord } from "@droidproxy/management-ui/utils/helpers";
 import {
   appendQueryParams,
+  encodeFormData,
   ipcManagementRequest,
   toManagementPath
 } from "@/management/adapter/ipcTransport";
@@ -61,7 +62,7 @@ class ApiClient {
     const timer = window.setTimeout(() => controller.abort(), timeout);
 
     try {
-      const response = await ipcManagementRequest(method, path, config?.data);
+      const response = await ipcManagementRequest(method, path, { body: config?.data });
       if (response.status === 401) {
         window.dispatchEvent(new Event("unauthorized"));
       }
@@ -161,8 +162,28 @@ class ApiClient {
     formData: FormData,
     config?: RequestConfig
   ): Promise<T> {
-    const payload = Object.fromEntries(formData.entries());
-    return this.requestJson<T>("POST", url, { ...config, data: payload });
+    const path = appendQueryParams(toManagementPath(url), config?.params);
+    const form = await encodeFormData(formData);
+    const response = await ipcManagementRequest("POST", path, { form });
+
+    if (response.status === 401) {
+      window.dispatchEvent(new Event("unauthorized"));
+    }
+
+    if (response.status >= 400) {
+      const details = response.body;
+      const record = isRecord(details) ? (details as Record<string, unknown>) : null;
+      const message =
+        record && typeof record.error === "string"
+          ? record.error
+          : record && typeof record.message === "string"
+            ? record.message
+            : response.error || `Request failed (${response.status})`;
+      throw this.createApiError(message, response.status, details);
+    }
+
+    this.dispatchVersionHints(response.body);
+    return response.body as T;
   }
 
   async requestRaw(config: RequestConfig & { url?: string; method?: string }) {

@@ -201,10 +201,10 @@ export function DashboardPage() {
           <CardHeader className="flex-row items-center justify-between">
             <div>
               <CardTitle>Management Center</CardTitle>
-              <CardDescription>In-app quota via IPC adapter (Rust mgmt_request)</CardDescription>
+              <CardDescription>Full Management Center embedded in-app via IPC</CardDescription>
             </div>
             <Button size="sm" onClick={openManagement}>
-              Open quota UI
+              Open Management
             </Button>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">

@@ -25,7 +25,7 @@ export const droidproxy = {
       invoke<{ applied: boolean; count: number }>("lab_apply_factory_models"),
     login: (provider: LoginProvider) =>
       invoke<{ started: boolean; provider: string }>("lab_login", { provider }),
-    openPath: (target: "auth" | "config" | "management") =>
+    openPath: (target: "auth" | "config") =>
       invoke<{ opened: boolean; path?: string; url?: string }>("lab_open_path", {
         request: { target }
       })
@@ -34,7 +34,6 @@ export const droidproxy = {
     restart: () => invoke<void>("supervisor_restart")
   },
   management: {
-    request: (req: ManagementRequest) => invoke<ManagementResponse>("mgmt_request", { req }),
-    openWebview: () => invoke<void>("open_management_webview")
+    request: (req: ManagementRequest) => invoke<ManagementResponse>("mgmt_request", { req })
   }
 };

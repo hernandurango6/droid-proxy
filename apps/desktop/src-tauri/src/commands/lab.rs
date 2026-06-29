@@ -62,7 +62,6 @@ pub async fn lab_open_path(request: LabOpenPathRequest) -> Result<Value, String>
     let path = match request.target.as_str() {
         "auth" => "/api/open-auth-dir",
         "config" => "/api/open-config",
-        "management" => "/api/open-management",
         _ => {
             return Err(format!("invalid open_path target: {}", request.target));
         }
@@ -107,7 +106,7 @@ fn sanitize_config_payload(value: &mut Value) {
 
 #[cfg(test)]
 mod tests {
-    use super::{sanitize_config_payload, sanitize_status_payload};
+    use super::{lab_open_path, sanitize_config_payload, sanitize_status_payload, LabOpenPathRequest};
     use serde_json::json;
 
     #[test]
@@ -118,6 +117,16 @@ mod tests {
         sanitize_status_payload(&mut payload);
         assert_eq!(payload["management"]["keyConfigured"], json!(true));
         assert!(payload["management"].get("secretKey").is_none());
+    }
+
+    #[tokio::test]
+    async fn rejects_management_open_path_target() {
+        let err = lab_open_path(LabOpenPathRequest {
+            target: "management".into(),
+        })
+        .await
+        .unwrap_err();
+        assert!(err.contains("invalid open_path target"));
     }
 
     #[test]
