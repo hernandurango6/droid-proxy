@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "test": "node --import tsx --test src/__tests__/codex.test.ts src/__tests__/normalize.test.ts",
+    "test": "node --import tsx --test src/__tests__/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "engines": {

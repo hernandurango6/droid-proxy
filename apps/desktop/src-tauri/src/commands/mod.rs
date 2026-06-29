@@ -1,8 +1,10 @@
 pub mod lab;
 pub mod mgmt;
+pub mod quota;
 
 use lab::LabOpenPathRequest;
 use mgmt::{ManagementRequest, ManagementResponse};
+use quota::QuotaSettingsPayload;
 use serde_json::Value;
 use std::sync::Arc;
 use tauri::State;
@@ -72,5 +74,17 @@ pub async fn mgmt_request(req: ManagementRequest) -> Result<ManagementResponse, 
 #[tauri::command]
 pub async fn supervisor_restart(state: State<'_, Arc<SupervisorState>>) -> Result<(), String> {
     state.restart().await
+}
+
+#[tauri::command]
+pub async fn lab_quota_settings() -> Result<QuotaSettingsPayload, String> {
+    quota::lab_quota_settings().await
+}
+
+#[tauri::command]
+pub async fn lab_save_quota_settings(
+    settings: QuotaSettingsPayload,
+) -> Result<QuotaSettingsPayload, String> {
+    quota::lab_save_quota_settings(settings).await
 }
 

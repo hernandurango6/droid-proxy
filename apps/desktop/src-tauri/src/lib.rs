@@ -1,12 +1,15 @@
 mod commands;
+mod quota_parse;
+mod quota_poller;
 mod settings;
 mod supervisor;
 
 use commands::{
     lab_accounts, lab_apply_factory_models, lab_commandcode_keys, lab_config, lab_factory_models,
-    lab_factory_models_selection, lab_login, lab_logs, lab_models, lab_open_path, lab_status,
-    mgmt_request, supervisor_restart,
+    lab_factory_models_selection, lab_login, lab_logs, lab_models, lab_open_path,
+    lab_quota_settings, lab_save_quota_settings, lab_status, mgmt_request, supervisor_restart,
 };
+use quota_poller::QuotaPollerState;
 use supervisor::SupervisorState;
 use std::sync::Arc;
 use tauri::{
@@ -18,6 +21,7 @@ use tauri::{
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.show();
@@ -28,6 +32,9 @@ pub fn run() {
             let supervisor = Arc::new(SupervisorState::new(app.handle().clone())?);
             app.manage(supervisor.clone());
             tauri::async_runtime::block_on(supervisor.start_background());
+
+            let quota_poller = Arc::new(QuotaPollerState::new(app.handle().clone()));
+            quota_poller.start();
 
             let open_item = MenuItem::with_id(app, "open", "Open DroidProxy", true, None::<&str>)?;
             let restart_item =
@@ -95,6 +102,8 @@ pub fn run() {
             lab_login,
             lab_open_path,
             mgmt_request,
+            lab_quota_settings,
+            lab_save_quota_settings,
             supervisor_restart
         ])
         .run(tauri::generate_context!())

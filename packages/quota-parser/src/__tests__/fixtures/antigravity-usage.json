@@ -1,0 +1,23 @@
+{
+  "groups": [
+    {
+      "displayName": "Default",
+      "buckets": [
+        {
+          "bucketId": "five-hour",
+          "displayName": "Five-hour window",
+          "window": "five-hour",
+          "remainingFraction": 0.05,
+          "resetTime": "2026-06-29T18:00:00Z"
+        },
+        {
+          "bucketId": "weekly",
+          "displayName": "Weekly window",
+          "window": "weekly",
+          "remainingFraction": 0.4,
+          "resetTime": "2026-07-06T00:00:00Z"
+        }
+      ]
+    }
+  ]
+}
