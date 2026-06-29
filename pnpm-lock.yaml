@@ -11,6 +11,9 @@ importers:
       '@droidproxy/core':
         specifier: workspace:*
         version: link:packages/core
+      '@droidproxy/service':
+        specifier: workspace:*
+        version: link:packages/service
     devDependencies:
       '@types/node':
         specifier: ^22.15.21
