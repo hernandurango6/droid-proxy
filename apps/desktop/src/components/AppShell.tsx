@@ -22,7 +22,7 @@ const MANAGEMENT_SECTIONS = [
 ] as const;
 
 function managementLink(hash: string) {
-  return `/management${hash === "#/" ? "" : hash}`;
+  return `/management${hash}`;
 }
 
 export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
