@@ -103,6 +103,15 @@ export function ManagementApp() {
     void restoreSession().finally(() => setBootstrapped(true));
   }, [restoreSession]);
 
+  useEffect(() => {
+    if (!bootstrapped) {
+      return;
+    }
+    if (window.location.pathname.startsWith("/management") && !window.location.hash) {
+      window.location.hash = "#/";
+    }
+  }, [bootstrapped]);
+
   return (
     <div className="management-ui-root min-h-screen bg-background text-foreground">
       <ManagementBootstrap>

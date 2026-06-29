@@ -130,7 +130,7 @@ export function DashboardPage() {
   }
 
   function openManagement() {
-    navigate("/management#/");
+    navigate({ pathname: "/management", hash: "#/" });
   }
 
   return (
