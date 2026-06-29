@@ -10,3 +10,5 @@ export * from "./config/write-config";
 export * from "./http/send-json";
 export * from "./proxy";
 export * from "./commandcode";
+export * from "./factory";
+export * from "./accounts";
