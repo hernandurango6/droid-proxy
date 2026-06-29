@@ -15,7 +15,7 @@
     "desktop:build": "pnpm sidecar:build && pnpm --filter @droidproxy/desktop tauri:build",
     "check": "node --check src/cli.js && node --check dashboard/app.js",
     "verify:backend-pin": "node scripts/verify-backend-version-pin.mjs",
-    "build:runtime": "pnpm --filter @droidproxy/core build && pnpm --filter @droidproxy/service build",
+    "build:runtime": "pnpm --filter @droidproxy/core build && pnpm --filter @droidproxy/quota-parser build && pnpm --filter @droidproxy/management-client build && pnpm --filter @droidproxy/service build",
     "prestart": "pnpm run build:runtime",
     "prelogin:claude": "pnpm run build:runtime",
     "prelogin:codex": "pnpm run build:runtime",
@@ -41,6 +41,8 @@
   "license": "MIT",
   "dependencies": {
     "@droidproxy/core": "workspace:*",
+    "@droidproxy/management-client": "workspace:*",
+    "@droidproxy/quota-parser": "workspace:*",
     "@droidproxy/service": "workspace:*"
   },
   "engines": {

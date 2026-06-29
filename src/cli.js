@@ -36,6 +36,7 @@ const {
   probeBackendVersion,
   assertMinimumVersion
 } = require("@droidproxy/service");
+const { fetchQuotaUsage, resetCodexQuotaUsage } = require("@droidproxy/management-client");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const AUTH_DIR = path.join(os.homedir(), ".cli-proxy-api");
@@ -216,7 +217,18 @@ function dashboardApiContext() {
     fetchModels,
     runLoginDetached,
     openPath,
-    writeConfig
+    writeConfig,
+    fetchQuotaUsage: () =>
+      fetchQuotaUsage({
+        managementUrl: MANAGEMENT_URL,
+        secretKey: settings.managementSecretKey
+      }),
+    resetCodexQuota: (accountName) =>
+      resetCodexQuotaUsage({
+        managementUrl: MANAGEMENT_URL,
+        secretKey: settings.managementSecretKey,
+        accountName
+      })
   };
 }
 

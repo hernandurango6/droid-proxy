@@ -25,8 +25,10 @@ test("parseClaudeQuotaSummary maps utilization windows", () => {
 test("parseAntigravityQuotaSummary converts remaining fraction to used percent", () => {
   const summary = parseAntigravityQuotaSummary(loadFixture("antigravity-usage.json"));
   assert.ok(summary);
-  const fiveHour = summary!.windows.find((window) => window.id === "five-hour");
-  assert.equal(fiveHour?.usedPercent, 95);
+  const weeklyGemini = summary!.windows.find((window) => window.id === "weekly-gemini");
+  assert.equal(weeklyGemini?.usedPercent, 0);
+  const weeklyClaude = summary!.windows.find((window) => window.id === "weekly-claude-gpt");
+  assert.equal(weeklyClaude?.usedPercent, 95);
 });
 
 test("parseCodexQuotaSummary keeps upstream used percent mapping", () => {

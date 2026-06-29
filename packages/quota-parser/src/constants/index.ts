@@ -1,3 +1,6 @@
+export const ANTIGRAVITY_CODE_ASSIST_URL =
+  "https://daily-cloudcode-pa.googleapis.com/v1internal:loadCodeAssist";
+
 export const ANTIGRAVITY_QUOTA_URLS = [
   "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
   "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:retrieveUserQuotaSummary",
@@ -39,6 +42,14 @@ export const CODEX_REQUEST_HEADERS = {
   "Content-Type": "application/json",
   "User-Agent": "codex_cli_rs/0.76.0 (Debian 13.0.0; x86_64) WindowsTerminal"
 } as const;
+
+export const CODEX_RATE_LIMIT_RESET_CREDITS_URL =
+  "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits";
+
+export const CODEX_RATE_LIMIT_RESET_CREDITS_CONSUME_URL =
+  "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits/consume";
+
+export const CODEX_RESET_CREDITS_REQUEST_TIMEOUT_MS = 8000;
 
 export const KIMI_USAGE_URL = "https://api.kimi.com/coding/v1/usages";
 

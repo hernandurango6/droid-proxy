@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@droidproxy/core": "workspace:*"
+    "@droidproxy/core": "workspace:*",
+    "@droidproxy/quota-parser": "workspace:*"
   },
   "engines": {
     "node": ">=18"

@@ -69,7 +69,19 @@ function baseContext() {
     fetchModels: async () => [],
     runLoginDetached: () => {},
     openPath: () => {},
-    writeConfig: () => {}
+    writeConfig: () => {},
+    fetchQuotaUsage: async () => ({
+      fetchedAt: "2026-06-29T12:00:00.000Z",
+      thresholds: { warn: 80, critical: 95 },
+      accounts: [],
+      alerts: []
+    }),
+    resetCodexQuota: async () => ({
+      fetchedAt: "2026-06-29T12:00:00.000Z",
+      thresholds: { warn: 80, critical: 95 },
+      accounts: [],
+      alerts: []
+    })
   };
 }
 

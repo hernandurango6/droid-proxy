@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@droidproxy/core": "workspace:*",
+    "@droidproxy/management-client": "workspace:*",
+    "@droidproxy/quota-parser": "workspace:*",
     "@droidproxy/service": "workspace:*"
   },
   "devDependencies": {

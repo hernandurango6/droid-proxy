@@ -1,4 +1,5 @@
 export * from "./api-call";
+export * from "./quota";
 export * from "./auth-files";
 export * from "./client";
 export * from "./normalize";

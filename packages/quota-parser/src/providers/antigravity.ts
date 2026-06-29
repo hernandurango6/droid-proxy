@@ -1,3 +1,4 @@
+import { formatQuotaResetTime } from "../formatters";
 import { normalizeQuotaFraction, normalizeStringValue, parseJsonPayload } from "../normalize";
 import type { QuotaWindowSummary } from "../types";
 import { isAntigravityFile, type AuthFileItem } from "../auth-files";
@@ -62,6 +63,7 @@ export function parseAntigravityPayload(payload: unknown): AntigravityPayload | 
 export function buildAntigravityQuotaWindows(payload: AntigravityPayload): QuotaWindowSummary[] {
   const groups = Array.isArray(payload.groups) ? payload.groups : [];
   const windows: QuotaWindowSummary[] = [];
+  const seenIds = new Set<string>();
 
   groups.forEach((group, groupIndex) => {
     const groupLabel =
@@ -101,11 +103,14 @@ export function buildAntigravityQuotaWindows(payload: AntigravityPayload): Quota
         return a.label.localeCompare(b.label);
       })
       .forEach((bucket) => {
+        if (seenIds.has(bucket.id)) return;
+        seenIds.add(bucket.id);
+        const resetTime = bucket.resetLabel === "-" ? "-" : formatQuotaResetTime(bucket.resetLabel);
         windows.push({
           id: bucket.id,
           label: bucket.label,
           usedPercent: bucket.usedPercent,
-          resetLabel: bucket.resetLabel
+          resetLabel: resetTime
         });
       });
   });

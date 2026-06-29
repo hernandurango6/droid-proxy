@@ -98,6 +98,41 @@ export async function handleDashboardAPI(
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/quota/codex-reset") {
+    const body = await readJSONRequest(req);
+    const accountName = typeof body.accountName === "string" ? body.accountName.trim() : "";
+    if (!accountName) {
+      sendJSON(res, 400, { error: "invalid_account" });
+      return;
+    }
+    try {
+      const result = await ctx.resetCodexQuota(accountName);
+      sendJSON(res, 200, result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      sendJSON(res, 502, { error: "codex_reset_failed", message });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/quota") {
+    try {
+      const result = await ctx.fetchQuotaUsage();
+      sendJSON(res, 200, result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      sendJSON(res, 502, {
+        error: "quota_unavailable",
+        message,
+        fetchedAt: new Date().toISOString(),
+        accounts: [],
+        alerts: [],
+        thresholds: { warn: 80, critical: 95 }
+      });
+    }
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/models") {
     try {
       const models = await ctx.fetchModels();

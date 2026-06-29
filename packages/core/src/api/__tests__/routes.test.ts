@@ -73,9 +73,35 @@ function baseContext(overrides: Record<string, unknown> = {}) {
     runLoginDetached: () => {},
     openPath: () => {},
     writeConfig: () => {},
+    fetchQuotaUsage: async () => ({
+      fetchedAt: "2026-06-29T12:00:00.000Z",
+      thresholds: { warn: 80, critical: 95 },
+      accounts: [],
+      alerts: []
+    }),
+    resetCodexQuota: async () => ({
+      fetchedAt: "2026-06-29T12:00:00.000Z",
+      thresholds: { warn: 80, critical: 95 },
+      accounts: [],
+      alerts: []
+    }),
     ...overrides
   };
 }
+
+test("handleDashboardAPI serves quota payload", async () => {
+  const mock = createMockResponse();
+  await handleDashboardAPI(
+    createRequest("GET", "/api/quota"),
+    mock.res,
+    new URL("http://127.0.0.1:8419/api/quota"),
+    baseContext() as never
+  );
+
+  const payload = JSON.parse(mock.body) as { thresholds: { warn: number } };
+  assert.equal(mock.statusCode, 200);
+  assert.equal(payload.thresholds.warn, 80);
+});
 
 test("handleDashboardAPI serves status payload", async () => {
   const mock = createMockResponse();

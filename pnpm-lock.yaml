@@ -11,6 +11,12 @@ importers:
       '@droidproxy/core':
         specifier: workspace:*
         version: link:packages/core
+      '@droidproxy/management-client':
+        specifier: workspace:*
+        version: link:packages/management-client
+      '@droidproxy/quota-parser':
+        specifier: workspace:*
+        version: link:packages/quota-parser
       '@droidproxy/service':
         specifier: workspace:*
         version: link:packages/service
@@ -168,6 +174,12 @@ importers:
       '@droidproxy/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@droidproxy/management-client':
+        specifier: workspace:*
+        version: link:../../packages/management-client
+      '@droidproxy/quota-parser':
+        specifier: workspace:*
+        version: link:../../packages/quota-parser
       '@droidproxy/service':
         specifier: workspace:*
         version: link:../../packages/service
@@ -183,6 +195,9 @@ importers:
       '@droidproxy/core':
         specifier: workspace:*
         version: link:../core
+      '@droidproxy/quota-parser':
+        specifier: workspace:*
+        version: link:../quota-parser
 
   packages/quota-parser: {}
 

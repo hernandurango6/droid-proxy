@@ -1,9 +1,6 @@
-import type { QuotaAlert, QuotaAlertLevel, QuotaWindowSummary } from "./types";
+import type { QuotaAlert, QuotaAlertLevel, QuotaAlertThresholds, QuotaWindowSummary } from "./types";
 
-export interface QuotaAlertThresholds {
-  warn: number;
-  critical: number;
-}
+export type { QuotaAlertThresholds };
 
 export const DEFAULT_QUOTA_ALERT_THRESHOLDS: QuotaAlertThresholds = {
   warn: 80,

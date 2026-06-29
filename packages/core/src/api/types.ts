@@ -25,4 +25,6 @@ export interface DashboardApiContext {
   runLoginDetached: (provider: string) => void;
   openPath: (targetPath: string) => void;
   writeConfig: () => void;
+  fetchQuotaUsage: () => Promise<Record<string, unknown>>;
+  resetCodexQuota: (accountName: string) => Promise<Record<string, unknown>>;
 }

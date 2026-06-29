@@ -48,6 +48,7 @@ import {
   startBackendProcess,
   stopBackendProcess
 } from "@droidproxy/service";
+import { fetchQuotaUsage, resetCodexQuotaUsage } from "@droidproxy/management-client";
 import { resolveSidecarRootDir } from "./paths";
 
 export interface SidecarOrchestratorOptions {
@@ -245,7 +246,18 @@ export class SidecarOrchestrator {
       fetchModels: () => this.fetchModels(),
       runLoginDetached: (provider) => this.runLoginDetached(provider),
       openPath: (targetPath) => this.openPath(targetPath),
-      writeConfig: () => this.writeConfig()
+      writeConfig: () => this.writeConfig(),
+      fetchQuotaUsage: () =>
+        fetchQuotaUsage({
+          managementUrl: this.managementUrl,
+          secretKey: this.settings.managementSecretKey
+        }),
+      resetCodexQuota: (accountName) =>
+        resetCodexQuotaUsage({
+          managementUrl: this.managementUrl,
+          secretKey: this.settings.managementSecretKey,
+          accountName
+        })
     };
   }
 
