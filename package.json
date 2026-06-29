@@ -8,7 +8,9 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm --filter @droidproxy/core build && pnpm --filter @droidproxy/service build && pnpm --filter @droidproxy/management-client build && pnpm --filter @droidproxy/quota-parser build && pnpm -r typecheck",
+    "typecheck": "pnpm --filter @droidproxy/core build && pnpm --filter @droidproxy/service build && pnpm --filter @droidproxy/management-client build && pnpm --filter @droidproxy/quota-parser build && pnpm --filter @droidproxy/sidecar build && pnpm -r typecheck",
+    "sidecar:start": "pnpm --filter @droidproxy/sidecar dev",
+    "sidecar:build": "pnpm --filter @droidproxy/sidecar build && pnpm --filter @droidproxy/sidecar compile",
     "check": "node --check src/cli.js && node --check dashboard/app.js",
     "build:runtime": "pnpm --filter @droidproxy/core build && pnpm --filter @droidproxy/service build",
     "prestart": "pnpm run build:runtime",

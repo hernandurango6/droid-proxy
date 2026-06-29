@@ -13,6 +13,7 @@ export const ENV_DASHBOARD_HOST = "DROIDPROXY_DASHBOARD_HOST";
 export const ENV_DASHBOARD_PORT = "DROIDPROXY_DASHBOARD_PORT";
 export const ENV_PUBLIC_HOST = "DROIDPROXY_PUBLIC_HOST";
 export const ENV_COMMANDCODE_URL = "DROIDPROXY_COMMANDCODE_URL";
+export const ENV_CONTROL_PORT = "DROIDPROXY_CONTROL_PORT";
 
 export const DEFAULT_COMMANDCODE_API_URL = "https://api.commandcode.ai/alpha/generate";
 
@@ -43,6 +44,10 @@ export function resolveDashboardPort(env: NodeJS.ProcessEnv = process.env): numb
 
 export function resolveCommandCodeApiUrl(env: NodeJS.ProcessEnv = process.env): string {
   return env[ENV_COMMANDCODE_URL] || DEFAULT_COMMANDCODE_API_URL;
+}
+
+export function resolveControlPort(env: NodeJS.ProcessEnv = process.env): number {
+  return parsePort(env[ENV_CONTROL_PORT], DEFAULT_CONTROL_PORT);
 }
 
 export function detectPublicHost(): string {

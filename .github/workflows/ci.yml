@@ -41,3 +41,6 @@ jobs:
 
       - name: Syntax check legacy CLI and dashboard
         run: pnpm check
+
+      - name: Build sidecar executable (smoke)
+        run: pnpm sidecar:build

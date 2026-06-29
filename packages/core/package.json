@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "test": "node --import tsx --test src/constants/__tests__/paths.test.ts src/constants/__tests__/ports.test.ts src/constants/__tests__/login-flags.test.ts src/config/__tests__/commandcode-keys.test.ts src/config/__tests__/settings.test.ts src/config/__tests__/write-config.test.ts src/proxy/__tests__/rewrites.test.ts src/proxy/__tests__/paths.test.ts src/commandcode/__tests__/models.test.ts src/commandcode/__tests__/convert.test.ts src/commandcode/__tests__/stream.test.ts src/commandcode/__tests__/api-keys.test.ts src/factory/__tests__/definitions.test.ts src/factory/__tests__/apply.test.ts src/factory/__tests__/selection.test.ts src/accounts/__tests__/list.test.ts src/api/__tests__/routes.test.ts src/api/__tests__/serve-asset.test.ts",
+    "test": "node --import tsx --test src/constants/__tests__/paths.test.ts src/constants/__tests__/ports.test.ts src/constants/__tests__/login-flags.test.ts src/config/__tests__/commandcode-keys.test.ts src/config/__tests__/settings.test.ts src/config/__tests__/write-config.test.ts src/proxy/__tests__/rewrites.test.ts src/proxy/__tests__/paths.test.ts src/commandcode/__tests__/models.test.ts src/commandcode/__tests__/convert.test.ts src/commandcode/__tests__/stream.test.ts src/commandcode/__tests__/api-keys.test.ts src/factory/__tests__/definitions.test.ts src/factory/__tests__/apply.test.ts src/factory/__tests__/selection.test.ts src/accounts/__tests__/list.test.ts src/api/__tests__/routes.test.ts src/api/__tests__/serve-asset.test.ts src/api/__tests__/control-server.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
