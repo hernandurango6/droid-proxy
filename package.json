@@ -8,7 +8,7 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "pnpm --filter @droidproxy/core build && pnpm -r typecheck",
     "check": "node --check src/cli.js && node --check dashboard/app.js",
     "start": "node src/cli.js start",
     "login:claude": "node src/cli.js login claude",
@@ -29,6 +29,11 @@
   "engines": {
     "node": ">=18",
     "pnpm": ">=9"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   },
   "devDependencies": {
     "@types/node": "^22.15.21",
