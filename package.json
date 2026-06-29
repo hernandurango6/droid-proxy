@@ -1,17 +1,22 @@
 {
   "name": "droidproxy-commandcode-lab",
   "version": "0.1.0",
+  "private": true,
   "description": "Isolated DroidProxy Windows lab with experimental CommandCode routing.",
   "main": "src/cli.js",
+  "packageManager": "pnpm@10.12.1",
   "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck",
+    "check": "node --check src/cli.js && node --check dashboard/app.js",
     "start": "node src/cli.js start",
     "login:claude": "node src/cli.js login claude",
     "login:codex": "node src/cli.js login codex",
     "login:kimi": "node src/cli.js login kimi",
     "login:antigravity": "node src/cli.js login antigravity",
     "login:gemini": "node src/cli.js login gemini",
-    "login:xai": "node src/cli.js login xai",
-    "check": "node --check src/cli.js && node --check dashboard/app.js"
+    "login:xai": "node src/cli.js login xai"
   },
   "keywords": [
     "droidproxy",
@@ -22,6 +27,13 @@
   ],
   "license": "MIT",
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "pnpm": ">=9"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.21",
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3"
   }
 }

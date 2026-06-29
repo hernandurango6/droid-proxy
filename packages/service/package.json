@@ -1,0 +1,25 @@
+{
+  "name": "@droidproxy/service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend process orchestration for DroidProxy",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "node --import tsx --test src/__tests__/index.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@droidproxy/core": "workspace:*"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
