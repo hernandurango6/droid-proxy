@@ -1,4 +1,6 @@
 use crate::settings::{load_management_secret_key, SettingsError};
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use regex::Regex;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -12,11 +14,23 @@ static PATH_ALLOWLIST: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^/v0/management(/|$)").expect("valid management path regex"));
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ManagementFormField {
+    pub name: String,
+    #[serde(default)]
+    pub filename: Option<String>,
+    #[serde(default)]
+    pub content_type: Option<String>,
+    pub data_base64: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ManagementRequest {
     pub method: String,
     pub path: String,
     #[serde(default)]
     pub body: Option<Value>,
+    #[serde(default)]
+    pub form: Option<Vec<ManagementFormField>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -79,7 +93,31 @@ pub async fn forward_management_request(req: ManagementRequest) -> Result<Manage
         .header("Authorization", format!("Bearer {secret_key}"))
         .header("Accept", "application/json");
 
-    if let Some(body) = req.body {
+    if let Some(fields) = req.form {
+        let mut form = reqwest::multipart::Form::new();
+        for field in fields {
+            let bytes = STANDARD.decode(field.data_base64).map_err(|error| {
+                serde_json::json!({
+                    "error": "invalid_form_field",
+                    "message": error.to_string()
+                })
+            })?;
+            let mut part = reqwest::multipart::Part::bytes(bytes);
+            if let Some(filename) = field.filename {
+                part = part.file_name(filename);
+            }
+            if let Some(content_type) = field.content_type {
+                part = part
+                    .mime_str(&content_type)
+                    .map_err(|error| serde_json::json!({
+                        "error": "invalid_form_field",
+                        "message": error.to_string()
+                    }))?;
+            }
+            form = form.part(field.name, part);
+        }
+        builder = builder.multipart(form);
+    } else if let Some(body) = req.body {
         builder = builder.json(&body);
     }
 
@@ -91,16 +129,21 @@ pub async fn forward_management_request(req: ManagementRequest) -> Result<Manage
     })?;
 
     let status = response.status().as_u16();
-    let body = response
-        .json::<Value>()
-        .await
-        .unwrap_or_else(|_| Value::Null);
+    let body = decode_response_body(response).await;
 
     Ok(ManagementResponse {
         status,
         body,
         error: None,
     })
+}
+
+async fn decode_response_body(response: reqwest::Response) -> Value {
+    let text = response.text().await.unwrap_or_default();
+    if text.trim().is_empty() {
+        return Value::Null;
+    }
+    serde_json::from_str(&text).unwrap_or_else(|_| Value::String(text))
 }
 
 fn map_settings_error(error: SettingsError) -> Value {

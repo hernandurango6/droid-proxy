@@ -39,6 +39,15 @@ importers:
       '@codemirror/merge':
         specifier: ^6.12.0
         version: 6.12.2
+      '@codemirror/search':
+        specifier: ^6.5.11
+        version: 6.7.1
+      '@codemirror/state':
+        specifier: ^6.5.2
+        version: 6.7.0
+      '@codemirror/view':
+        specifier: ^6.38.1
+        version: 6.43.4
       '@droidproxy/management-ui':
         specifier: workspace:*
         version: link:packages/management-ui
@@ -90,6 +99,9 @@ importers:
       react-i18next:
         specifier: ^17.0.8
         version: 17.0.8(i18next@26.3.3(typescript@5.9.3))(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@5.9.3)
+      react-router:
+        specifier: ^7.10.1
+        version: 7.18.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-router-dom:
         specifier: ^7.10.1
         version: 7.18.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)

@@ -1,10 +1,10 @@
-import { BarChart3, LayoutDashboard, RefreshCw } from "lucide-react";
+import { BarChart3, FileKey, LayoutDashboard, RefreshCw, Settings, ScrollText } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 import { droidproxy } from "@/lib/tauri";
 
 interface AppShellProps {
@@ -13,9 +13,23 @@ interface AppShellProps {
   children: ReactNode;
 }
 
+const MANAGEMENT_SECTIONS = [
+  { label: "Overview", hash: "#/", icon: LayoutDashboard },
+  { label: "Quota", hash: "#/quota", icon: BarChart3 },
+  { label: "Auth Files", hash: "#/auth-files", icon: FileKey },
+  { label: "Config", hash: "#/config", icon: Settings },
+  { label: "Logs", hash: "#/logs", icon: ScrollText }
+] as const;
+
+function managementLink(hash: string) {
+  return `/management${hash === "#/" ? "" : hash}`;
+}
+
 export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
   const location = useLocation();
   const onHome = location.pathname === "/";
+  const inManagement = location.pathname.startsWith("/management");
+  const currentHash = location.hash || "#/";
 
   return (
     <div className="min-h-screen bg-background">
@@ -58,7 +72,7 @@ export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
           </div>
         </div>
         <Separator />
-        <nav className="mx-auto flex max-w-7xl gap-2 px-4 py-2">
+        <nav className="mx-auto flex max-w-7xl flex-wrap gap-2 px-4 py-2">
           <Link
             to="/"
             className={cn(
@@ -68,18 +82,27 @@ export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
             <LayoutDashboard className="size-4" />
             Home
           </Link>
-          <Link
-            to="/management"
-            className={cn(
-              buttonVariants({
-                variant: location.pathname.startsWith("/management") ? "secondary" : "outline",
-                size: "sm"
-              })
-            )}
-          >
-            <BarChart3 className="size-4" />
-            Quota
-          </Link>
+          {MANAGEMENT_SECTIONS.map((section) => {
+            const href = managementLink(section.hash);
+            const active =
+              inManagement &&
+              (section.hash === "#/"
+                ? currentHash === "#/" || currentHash === ""
+                : currentHash === section.hash);
+            const Icon = section.icon;
+            return (
+              <Link
+                key={section.hash}
+                to={href}
+                className={cn(
+                  buttonVariants({ variant: active ? "secondary" : "outline", size: "sm" })
+                )}
+              >
+                <Icon className="size-4" />
+                {section.label}
+              </Link>
+            );
+          })}
         </nav>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>

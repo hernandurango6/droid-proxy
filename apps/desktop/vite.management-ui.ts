@@ -5,7 +5,8 @@ import type { Plugin } from "vite";
 const SHIM_TARGETS = {
   "services/api/client": "apiClient.shim.ts",
   "stores/useAuthStore": "useAuthStore.shim.ts",
-  "services/storage/secureStorage": "secureStorage.shim.ts"
+  "services/storage/secureStorage": "secureStorage.shim.ts",
+  "router/ProtectedRoute": "ProtectedRoute.shim.tsx"
 } as const;
 
 function normalizePath(filePath: string): string {
@@ -90,6 +91,10 @@ export function managementUiResolver(desktopRoot: string): Plugin {
 
       if (source === "./useAuthStore" && normalizedImporter.includes("/stores/")) {
         return shimPath("stores/useAuthStore");
+      }
+
+      if (source === "./ProtectedRoute" && normalizedImporter.includes("/router/")) {
+        return shimPath("router/ProtectedRoute");
       }
 
       return null;
