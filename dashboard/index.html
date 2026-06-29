@@ -2,60 +2,67 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>DroidProxy — Lab Console</title>
     <link rel="stylesheet" href="/styles.css">
+    <script>try{if(localStorage.getItem("droidproxy.legacyDismissed")==="1"){document.documentElement.classList.add("legacy-dismissed");}}catch(e){}</script>
   </head>
   <body>
     <div class="app">
-      <aside class="deprecation-banner" role="status">
-        <span class="deprecation-tag">Legacy</span>
-        <p>
-          Browser dashboard on <code>:8419</code>. Use the <strong>DroidProxy</strong> desktop app for the maintained tray UI and OS quota notifications.
-          CLI lab mode still serves this page during migration.
-        </p>
+      <header class="topbar">
+        <div class="topbar-brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div class="brand-text">
+            <p class="brand-eyebrow">CLI lab console</p>
+            <h1>DroidProxy</h1>
+          </div>
+        </div>
+        <div class="topbar-readout">
+          <span id="overall-status" class="status-chip muted">Loading</span>
+          <div class="topbar-endpoint">
+            <span class="field-label">Proxy endpoint</span>
+            <code id="endpoint" class="endpoint-value">Loading endpoint…</code>
+          </div>
+          <div class="topbar-actions">
+            <button id="copy-endpoint" type="button" class="btn btn-secondary">Copy endpoint</button>
+            <button id="refresh" type="button" class="btn btn-primary">Refresh</button>
+          </div>
+        </div>
+      </header>
+
+      <aside class="legacy-bar" id="legacy-bar" role="status">
+        <span class="legacy-tag">Legacy</span>
+        <p>Browser dashboard on <code>:8419</code>. Use the <strong>DroidProxy</strong> desktop app for the maintained tray UI and OS quota notifications. CLI lab mode still serves this page during migration.</p>
+        <button class="legacy-close" id="legacy-close" type="button" aria-label="Dismiss legacy notice">&times;</button>
       </aside>
 
       <div class="shell">
         <aside class="rail" aria-label="Console navigation">
-          <div class="rail-brand">
-            <span class="rail-mark" aria-hidden="true"></span>
-            <div>
-              <p class="rail-eyebrow">CLI lab console</p>
-              <h1>DroidProxy</h1>
-            </div>
-          </div>
-
-          <div class="endpoint-card">
-            <span class="field-label">Proxy endpoint</span>
-            <p id="endpoint" class="endpoint-value">Loading endpoint…</p>
-            <div class="endpoint-actions">
-              <button id="copy-endpoint" type="button" class="btn btn-secondary">Copy endpoint</button>
-              <button id="refresh" type="button" class="btn btn-ghost">Refresh</button>
-            </div>
-          </div>
-
           <nav class="rail-nav" aria-label="Sections">
-            <a class="rail-link" href="#vitals">Status</a>
-            <a class="rail-link" href="#quota">Quota</a>
-            <a class="rail-link" href="#oauth">OAuth</a>
-            <a class="rail-link" href="#management">Management</a>
-            <a class="rail-link" href="#keys">Keys</a>
-            <a class="rail-link" href="#factory">Factory</a>
-            <a class="rail-link" href="#accounts">Accounts</a>
-            <a class="rail-link" href="#logs">Logs</a>
-            <a class="rail-link" href="#config">Config</a>
+            <a class="rail-link" href="#vitals"><span class="rail-idx">01</span><span>Status</span></a>
+            <a class="rail-link" href="#quota"><span class="rail-idx">02</span><span>Quota</span></a>
+            <a class="rail-link" href="#oauth"><span class="rail-idx">03</span><span>OAuth</span></a>
+            <a class="rail-link" href="#management"><span class="rail-idx">04</span><span>Management</span></a>
+            <a class="rail-link" href="#keys"><span class="rail-idx">05</span><span>Keys</span></a>
+            <a class="rail-link" href="#factory"><span class="rail-idx">06</span><span>Factory</span></a>
+            <a class="rail-link" href="#accounts"><span class="rail-idx">07</span><span>Accounts</span></a>
+            <a class="rail-link" href="#logs"><span class="rail-idx">08</span><span>Logs</span></a>
+            <a class="rail-link" href="#config"><span class="rail-idx">09</span><span>Config</span></a>
           </nav>
+          <div class="rail-foot">
+            <p class="rail-foot-label">Instance</p>
+            <p class="rail-foot-meta">CLI lab · :8419</p>
+          </div>
         </aside>
 
         <main class="workspace">
-          <section id="vitals" class="vitals" aria-labelledby="vitals-title">
+                    <section id="vitals" class="vitals" aria-labelledby="vitals-title">
             <div class="section-head">
               <div>
+                <p class="section-eyebrow">01 / Relay status</p>
                 <h2 id="vitals-title">Relay status</h2>
                 <p class="section-lead">Live health of proxy, backend, and dashboard services.</p>
               </div>
-              <span id="overall-status" class="status-chip muted">Loading</span>
             </div>
             <div class="vitals-grid">
               <article class="vital" data-service="proxy">
@@ -88,6 +95,7 @@
           <section id="quota" class="zone zone-quota">
             <div class="section-head">
               <div>
+                <p class="section-eyebrow">02 / Quota usage</p>
                 <h2>Quota usage</h2>
                 <p class="section-lead">Provider usage windows from auth files, without opening Management Center.</p>
               </div>
@@ -104,6 +112,7 @@
             <section id="oauth" class="zone zone-operate">
               <div class="section-head">
                 <div>
+                  <p class="section-eyebrow">03 / OAuth providers</p>
                   <h2>OAuth providers</h2>
                   <p class="section-lead">Start a provider login flow in the browser.</p>
                 </div>
@@ -115,30 +124,25 @@
             <section id="management" class="zone zone-operate">
               <div class="section-head">
                 <div>
+                  <p class="section-eyebrow">04 / Management center</p>
                   <h2>Management center</h2>
                   <p class="section-lead">Advanced CLIProxyAPI UI for quotas, plugins, and routing.</p>
                 </div>
                 <button id="open-management" type="button" class="btn btn-primary">Open advanced UI</button>
               </div>
               <dl class="kv-grid">
-                <div class="kv-row">
-                  <dt>URL</dt>
-                  <dd id="management-url">—</dd>
-                </div>
-                <div class="kv-row">
-                  <dt>Key</dt>
-                  <dd id="management-key">—</dd>
-                </div>
+                <div class="kv-row"><dt>URL</dt><dd id="management-url">—</dd></div>
+                <div class="kv-row"><dt>Key</dt><dd id="management-key">—</dd></div>
               </dl>
               <div class="action-row">
                 <button id="copy-management-url" type="button" class="btn btn-secondary">Copy URL</button>
                 <button id="copy-management-key" type="button" class="btn btn-secondary">Copy key</button>
               </div>
             </section>
-
-            <section id="keys" class="zone zone-config">
+                        <section id="keys" class="zone zone-config">
               <div class="section-head">
                 <div>
+                  <p class="section-eyebrow">05 / CommandCode keys</p>
                   <h2>CommandCode keys</h2>
                   <p class="section-lead">Round-robin API keys for experimental routing.</p>
                 </div>
@@ -160,6 +164,7 @@
             <section id="factory" class="zone zone-config zone-wide">
               <div class="section-head">
                 <div>
+                  <p class="section-eyebrow">06 / Factory custom models</p>
                   <h2>Factory custom models</h2>
                   <p class="section-lead">Writes DroidProxy aliases into Factory settings with a timestamped backup first.</p>
                 </div>
@@ -175,23 +180,18 @@
                 <input id="factory-model-search" type="search" placeholder="Claude, GPT, Gemini, Kimi…">
               </label>
               <dl class="kv-grid kv-compact">
-                <div class="kv-row">
-                  <dt>Settings</dt>
-                  <dd id="factory-settings-path">—</dd>
-                </div>
-                <div class="kv-row">
-                  <dt>Expected</dt>
-                  <dd id="factory-expected">—</dd>
-                </div>
+                <div class="kv-row"><dt>Settings</dt><dd id="factory-settings-path">—</dd></div>
+                <div class="kv-row"><dt>Expected</dt><dd id="factory-expected">—</dd></div>
               </dl>
               <div id="factory-model-selection" class="check-list"></div>
             </section>
           </div>
 
           <div class="data-row">
-            <section id="accounts" class="zone zone-data">
+            <section class="zone zone-data">
               <div class="section-head">
                 <div>
+                  <p class="section-eyebrow">07 / Accounts</p>
                   <h2>Accounts</h2>
                   <p class="section-lead">Authenticated provider sessions on disk.</p>
                 </div>
@@ -200,9 +200,10 @@
               <div id="accounts" class="data-list empty">No accounts found.</div>
             </section>
 
-            <section id="models" class="zone zone-data">
+            <section class="zone zone-data">
               <div class="section-head">
                 <div>
+                  <p class="section-eyebrow">Loaded models</p>
                   <h2>Loaded models</h2>
                   <p class="section-lead">Models exposed by the running backend.</p>
                 </div>
@@ -216,55 +217,41 @@
               </div>
             </section>
           </div>
-
-          <section id="logs" class="zone zone-logs">
+          <section class="zone zone-logs">
             <div class="section-head">
               <div>
+                <p class="section-eyebrow">08 / Runtime logs</p>
                 <h2>Runtime logs</h2>
                 <p class="section-lead">Recent proxy and backend output.</p>
               </div>
               <span id="log-count" class="status-chip muted">0</span>
             </div>
-            <pre id="logs" class="log-terminal" tabindex="0">Waiting for logs…</pre>
+            <div class="terminal">
+              <div class="terminal-bar">
+                <span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <span class="terminal-title">droidproxy · live feed</span>
+              </div>
+              <pre id="logs" class="log-terminal" tabindex="0">Waiting for logs…</pre>
+            </div>
           </section>
 
           <section id="config" class="zone zone-paths">
             <div class="section-head">
               <div>
+                <p class="section-eyebrow">09 / Paths and flags</p>
                 <h2>Paths and flags</h2>
                 <p class="section-lead">Local files and runtime options for this lab instance.</p>
               </div>
               <button id="open-config" type="button" class="btn btn-ghost">Open config</button>
             </div>
             <dl class="path-grid">
-              <div class="path-item">
-                <dt>Config</dt>
-                <dd id="config-path">—</dd>
-              </div>
-              <div class="path-item">
-                <dt>Auth</dt>
-                <dd id="auth-dir">—</dd>
-              </div>
-              <div class="path-item">
-                <dt>Factory</dt>
-                <dd id="factory-path">—</dd>
-              </div>
-              <div class="path-item">
-                <dt>Debug</dt>
-                <dd id="debug-flag">—</dd>
-              </div>
-              <div class="path-item">
-                <dt>CommandCode</dt>
-                <dd id="commandcode-keys">—</dd>
-              </div>
-              <div class="path-item">
-                <dt>Fast mode</dt>
-                <dd id="fast-mode">—</dd>
-              </div>
-              <div class="path-item">
-                <dt>Timeout</dt>
-                <dd id="timeout">—</dd>
-              </div>
+              <div class="path-item"><dt>Config</dt><dd id="config-path">—</dd></div>
+              <div class="path-item"><dt>Auth</dt><dd id="auth-dir">—</dd></div>
+              <div class="path-item"><dt>Factory</dt><dd id="factory-path">—</dd></div>
+              <div class="path-item"><dt>Debug</dt><dd id="debug-flag">—</dd></div>
+              <div class="path-item"><dt>CommandCode</dt><dd id="commandcode-keys">—</dd></div>
+              <div class="path-item"><dt>Fast mode</dt><dd id="fast-mode">—</dd></div>
+              <div class="path-item"><dt>Timeout</dt><dd id="timeout">—</dd></div>
             </dl>
           </section>
         </main>
@@ -273,5 +260,33 @@
 
     <div id="toast" role="status" aria-live="polite"></div>
     <script src="/app.js"></script>
+    <script>
+      (function () {
+        var bar = document.getElementById("legacy-bar");
+        var close = document.getElementById("legacy-close");
+        if (bar && close) {
+          close.addEventListener("click", function () {
+            try { localStorage.setItem("droidproxy.legacyDismissed", "1"); } catch (e) {}
+            document.documentElement.classList.add("legacy-dismissed");
+          });
+        }
+        var links = Array.prototype.slice.call(document.querySelectorAll(".rail-link"));
+        var byId = {};
+        links.forEach(function (l) { byId[l.getAttribute("href").slice(1)] = l; });
+        var targets = links.map(function (l) { return document.getElementById(l.getAttribute("href").slice(1)); }).filter(Boolean);
+        if ("IntersectionObserver" in window && targets.length) {
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+              if (e.isIntersecting) {
+                links.forEach(function (l) { l.classList.remove("is-active"); });
+                var link = byId[e.target.id];
+                if (link) link.classList.add("is-active");
+              }
+            });
+          }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
+          targets.forEach(function (t) { io.observe(t); });
+        }
+      })();
+    </script>
   </body>
 </html>
