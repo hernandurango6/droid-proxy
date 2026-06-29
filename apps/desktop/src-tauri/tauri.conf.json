@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "cd ../../.. && pnpm sidecar:build && pnpm --filter @droidproxy/desktop build",
     "frontendDist": "../dist"
   },
   "app": {
@@ -24,12 +24,14 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis"],
     "icon": [
       "icons/icon.ico"
     ],
     "resources": {
-      "../../../resources/bin/cli-proxy-api.exe": "bin/cli-proxy-api.exe"
+      "../../../resources/bin/cli-proxy-api.exe": "bin/cli-proxy-api.exe",
+      "../../../apps/sidecar/dist/droidproxy-sidecar.exe": "bin/droidproxy-sidecar.exe",
+      "../../../resources/config.template.yaml": "config.template.yaml"
     }
   }
 }
