@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "test": "node --import tsx --test src/__tests__/index.test.ts",
+    "test": "node --import tsx --test src/__tests__/index.test.ts src/__tests__/client.test.ts src/__tests__/auth-files.test.ts src/__tests__/api-call.test.ts src/__tests__/version.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

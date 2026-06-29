@@ -1,0 +1,22 @@
+{
+  "name": "@droidproxy/quota-parser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Provider quota parsing extracted from Management Center quotaConfigs",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "node --import tsx --test src/__tests__/codex.test.ts src/__tests__/normalize.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
