@@ -1,20 +1,10 @@
 # DroidProxy CommandCode Lab
 
-Isolated Windows lab for DroidProxy with experimental CommandCode routing.
+Windows desktop app and CLI lab for DroidProxy with experimental CommandCode routing.
 
-It starts the bundled `cli-proxy-api.exe` on `127.0.0.1:8418` and exposes a DroidProxy-compatible proxy on all network interfaces at port `8417`.
+**Recommended:** install the **DroidProxy** desktop app (Tauri). It runs the proxy, backend, and React UI from the system tray.
 
-It also serves a local dashboard on:
-
-```text
-http://YOUR_PC_IP:8419
-```
-
-The bundled CLIProxyAPI Management Center is available through the backend:
-
-```text
-http://127.0.0.1:8418/management.html
-```
+**CLI lab mode** (`npm start`) remains supported for headless use, CI, and scripting. It starts the same bundled `cli-proxy-api.exe` backend and OpenAI-compatible proxy, plus a **legacy** browser dashboard on port `8419`.
 
 Generated settings and config are saved under `%USERPROFILE%\.cli-proxy-api\`:
 
@@ -26,7 +16,7 @@ droidproxy-commandcode-lab-config.yaml     # backend config generated from resou
 ## Requirements
 
 - Windows
-- Node.js 18+ (CLI/lab mode)
+- Node.js 18+ (CLI lab mode only)
 - WebView2 runtime (desktop app — preinstalled on Windows 11)
 
 ## Desktop app (recommended)
@@ -58,6 +48,12 @@ http://127.0.0.1:8417/v1
 
 Enable **Allow LAN access** in Settings to bind the proxy on all interfaces. Enable **Start with Windows** to launch minimized to the tray (`--hidden`).
 
+The advanced CLIProxyAPI Management Center is available at:
+
+```text
+http://127.0.0.1:8418/management.html
+```
+
 CI publishes unsigned installers via the `Desktop Release` workflow (`workflow_dispatch` or `desktop-v*` tags). Authenticode signing is reserved for GA builds.
 
 Development:
@@ -66,7 +62,7 @@ Development:
 pnpm desktop:dev
 ```
 
-## Start (CLI lab mode)
+## CLI lab mode (headless / CI)
 
 ```powershell
 npm start
@@ -78,22 +74,33 @@ Use this endpoint in Droid/Factory from this PC or another device on the same ne
 http://YOUR_PC_IP:8417/v1
 ```
 
-Open the dashboard:
+By default the frontend proxy listens on `0.0.0.0` (all interfaces). The backend management API remains local-only on `127.0.0.1:8418`.
+
+### Legacy browser dashboard (`:8419`)
+
+The HTML dashboard at `http://127.0.0.1:8419` is **deprecated**. Prefer the desktop app for OAuth, CommandCode keys, Factory models, and status. The lab dashboard is kept for compatibility during migration and shows a deprecation banner.
+
+To expose the legacy dashboard on your LAN (not recommended):
+
+```powershell
+$env:DROIDPROXY_DASHBOARD_HOST="0.0.0.0"
+npm start
+```
+
+Then open:
 
 ```text
 http://YOUR_PC_IP:8419
 ```
 
-By default the frontend proxy and dashboard listen on `0.0.0.0`. The backend management API remains local-only on `127.0.0.1:8418`.
-
-If Windows reports the wrong LAN IP in the dashboard, set the advertised host before starting:
+If Windows reports the wrong LAN IP in logs or the dashboard, set the advertised host before starting:
 
 ```powershell
 $env:DROIDPROXY_PUBLIC_HOST="192.168.1.50"
 npm start
 ```
 
-To force local-only mode:
+To force local-only mode for both proxy and dashboard:
 
 ```powershell
 $env:DROIDPROXY_HOST="127.0.0.1"
@@ -112,13 +119,13 @@ npm start
 
 ## Factory Custom Models
 
-The dashboard can apply DroidProxy model aliases to:
+The desktop app and legacy dashboard can apply DroidProxy model aliases to:
 
 ```text
 %USERPROFILE%\.factory\settings.json
 ```
 
-It removes stale `custom:droidproxy:*` / `custom:CC:*` entries, appends the current DroidProxy catalog, and creates a timestamped backup next to `settings.json` before writing.
+They remove stale `custom:droidproxy:*` / `custom:CC:*` entries, append the current DroidProxy catalog, and create a timestamped backup next to `settings.json` before writing.
 
 ## OAuth Login
 
@@ -168,22 +175,23 @@ node src/cli.js help
 - `8417` is the public local proxy endpoint.
 - `8418` is the private backend endpoint.
 - `8418/management.html` is the advanced CLIProxyAPI Management Center.
-- `8419` is the lightweight DroidProxy launcher dashboard.
+- `8419` is the **legacy** lightweight DroidProxy browser dashboard (CLI lab mode only; deprecated).
+- `8420` is the sidecar control API (desktop app; loopback only).
 - Claude visible-thinking beta header rewriting is implemented in the frontend proxy.
 - Codex fast mode injects `service_tier: "priority"` for `gpt-5.4` and `gpt-5.5` when enabled by environment variable.
-- CommandCode models support local API-key round robin from the dashboard, environment variables, or `~/.commandcode/auth.json`.
+- CommandCode models support local API-key round robin from the desktop UI, legacy dashboard, environment variables, or `~/.commandcode/auth.json`.
 - In lab mode, orphaned `cli-proxy-api.exe` processes are not killed on start unless `DROIDPROXY_KILL_ORPHANED_BACKEND=1`.
 - For details on the CommandCode conversion pipeline, see `commandcode-routing.md`.
 
 ## CommandCode API Keys
 
-The dashboard has a CommandCode Keys panel. Paste one key per line, comma-separated keys, or a JSON array and click Save Keys. Saved keys are stored in:
+The desktop app and legacy dashboard have a CommandCode Keys panel. Paste one key per line, comma-separated keys, or a JSON array and click Save Keys. Saved keys are stored in:
 
 ```text
 %USERPROFILE%\.cli-proxy-api\droidproxy-commandcode-lab-settings.json
 ```
 
-Saved keys are used in round robin for `commandcode:*` / `cmc:*` models. Environment variables still work and are combined with dashboard-saved keys and `~/.commandcode/auth.json`.
+Saved keys are used in round robin for `commandcode:*` / `cmc:*` models. Environment variables still work and are combined with saved keys and `~/.commandcode/auth.json`.
 
 Environment flags:
 

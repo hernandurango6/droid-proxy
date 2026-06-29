@@ -7,9 +7,12 @@
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <p style="margin:0;padding:12px 18px;background:#3d3218;color:#f4df9a;font:13px/1.4 Segoe UI,system-ui,sans-serif;border-bottom:1px solid #7a6123;">
-      Legacy web dashboard. Prefer the Tauri desktop app (<code>pnpm desktop:dev</code>) for the maintained React UI.
-    </p>
+    <aside class="deprecation-banner" role="status">
+      <strong>Deprecated.</strong>
+      This browser dashboard (<code>:8419</code>) is legacy. Install or run the
+      <strong>DroidProxy</strong> desktop app for OAuth, CommandCode keys, Factory models, and quota alerts.
+      CLI lab mode (<code>npm start</code>) still serves this page during migration.
+    </aside>
     <header class="topbar">
       <div>
         <h1>DroidProxy Windows</h1>
