@@ -55,6 +55,17 @@ export interface FactoryModel {
   provider: string;
 }
 
+export interface QuotaAlertThresholds {
+  warn: number;
+  critical: number;
+}
+
+export interface QuotaSettings {
+  quotaPollIntervalSec: number;
+  quotaAlertThresholds: QuotaAlertThresholds;
+  quotaNotificationsEnabled: boolean;
+}
+
 export interface FactoryModelsStatus {
   installed: boolean;
   expectedCount: number;

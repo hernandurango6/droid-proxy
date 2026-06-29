@@ -6,6 +6,7 @@ import type {
   FactoryModelsStatus,
   LoginProvider,
   ModelEntry,
+  QuotaSettings,
   StatusPayload
 } from "./types";
 
@@ -28,7 +29,10 @@ export const droidproxy = {
     openPath: (target: "auth" | "config") =>
       invoke<{ opened: boolean; path?: string; url?: string }>("lab_open_path", {
         request: { target }
-      })
+      }),
+    quotaSettings: () => invoke<QuotaSettings>("lab_quota_settings"),
+    saveQuotaSettings: (settings: QuotaSettings) =>
+      invoke<QuotaSettings>("lab_save_quota_settings", { settings })
   },
   supervisor: {
     restart: () => invoke<void>("supervisor_restart")

@@ -1,0 +1,12 @@
+{
+  "usage": {
+    "used": 850,
+    "limit": 1000
+  },
+  "limits": [
+    {
+      "window": { "duration": 300, "timeUnit": "MINUTES" },
+      "detail": { "used": 96, "limit": 100 }
+    }
+  ]
+}

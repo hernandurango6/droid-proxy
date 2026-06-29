@@ -82,6 +82,18 @@ export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
             <LayoutDashboard className="size-4" />
             Home
           </Link>
+          <Link
+            to="/settings"
+            className={cn(
+              buttonVariants({
+                variant: location.pathname === "/settings" ? "secondary" : "outline",
+                size: "sm"
+              })
+            )}
+          >
+            <Settings className="size-4" />
+            Settings
+          </Link>
           {MANAGEMENT_SECTIONS.map((section) => {
             const href = managementLink(section.hash);
             const active =

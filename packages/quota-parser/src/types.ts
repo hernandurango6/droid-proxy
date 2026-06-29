@@ -1,3 +1,5 @@
+export type QuotaProvider = "claude" | "antigravity" | "codex" | "kimi" | "xai";
+
 export interface QuotaWindowSummary {
   id: string;
   label: string;
@@ -14,7 +16,7 @@ export interface CodexQuotaSummary {
 export type QuotaAlertLevel = "warn" | "critical" | "exhausted";
 
 export interface QuotaAlert {
-  provider: "claude" | "antigravity" | "codex" | "kimi" | "xai";
+  provider: QuotaProvider;
   accountName: string;
   windowLabel: string;
   usedPercent: number;
