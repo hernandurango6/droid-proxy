@@ -36,6 +36,8 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/quota-parser: {}
+
   packages/service:
     dependencies:
       '@droidproxy/core':

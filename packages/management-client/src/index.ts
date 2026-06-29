@@ -1,3 +1,10 @@
+export * from "./api-call";
+export * from "./auth-files";
+export * from "./client";
+export * from "./normalize";
+export * from "./types";
+export * from "./version";
+
 import { BACKEND_HOST, DEFAULT_BACKEND_PORT, getManagementUrl } from "@droidproxy/core";
 
 export const MANAGEMENT_CLIENT_PACKAGE_NAME = "@droidproxy/management-client";
