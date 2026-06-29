@@ -44,3 +44,10 @@ jobs:
 
       - name: Build sidecar executable (smoke)
         run: pnpm sidecar:build
+
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Test desktop shell (Rust)
+        working-directory: apps/desktop/src-tauri
+        run: cargo test
