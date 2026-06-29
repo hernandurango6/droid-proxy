@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { droidproxy } from "@/lib/tauri";
-import type { QuotaSettings } from "@/lib/types";
+import type { DesktopSettings } from "@/lib/types";
 
-const DEFAULT_SETTINGS: QuotaSettings = {
+const DEFAULT_SETTINGS: DesktopSettings = {
+  autoStart: false,
+  minimizeToTray: true,
+  allowLanAccess: false,
   quotaPollIntervalSec: 60,
   quotaAlertThresholds: { warn: 80, critical: 95 },
   quotaNotificationsEnabled: true
@@ -15,16 +18,16 @@ const DEFAULT_SETTINGS: QuotaSettings = {
 
 export function SettingsPage() {
   const [endpoint, setEndpoint] = useState("");
-  const [settings, setSettings] = useState<QuotaSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<DesktopSettings>(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
 
   const refresh = async () => {
-    const [status, quotaSettings] = await Promise.all([
+    const [status, desktopSettings] = await Promise.all([
       droidproxy.lab.status(),
-      droidproxy.lab.quotaSettings()
+      droidproxy.lab.desktopSettings()
     ]);
     setEndpoint(status.proxy.baseUrl || status.proxy.url || "");
-    setSettings(quotaSettings);
+    setSettings(desktopSettings);
   };
 
   useEffect(() => {
@@ -34,9 +37,11 @@ export function SettingsPage() {
   const save = async () => {
     setSaving(true);
     try {
-      const saved = await droidproxy.lab.saveQuotaSettings(settings);
+      const saved = await droidproxy.lab.saveDesktopSettings(settings);
       setSettings(saved);
-      toast.success("Quota alert settings saved");
+      toast.success("Desktop settings saved");
+      const [status] = await Promise.all([droidproxy.lab.status()]);
+      setEndpoint(status.proxy.baseUrl || status.proxy.url || "");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save settings");
     } finally {
@@ -47,6 +52,73 @@ export function SettingsPage() {
   return (
     <AppShell endpoint={endpoint} onRefresh={() => void refresh()}>
       <div className="grid gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Desktop behavior</CardTitle>
+            <CardDescription>
+              Startup, tray, and network preferences for the DroidProxy shell.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <label className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-sm font-medium">Start with Windows</span>
+                <p className="text-sm text-muted-foreground">
+                  Registers a login item that launches DroidProxy minimized to the tray with
+                  <code className="mx-1 rounded bg-muted px-1">--hidden</code>.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.autoStart}
+                onChange={(event) =>
+                  setSettings((current) => ({ ...current, autoStart: event.target.checked }))
+                }
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-sm font-medium">Minimize to tray on close</span>
+                <p className="text-sm text-muted-foreground">
+                  When enabled, closing the window hides DroidProxy to the tray and keeps services
+                  running.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.minimizeToTray}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    minimizeToTray: event.target.checked
+                  }))
+                }
+              />
+            </label>
+
+            <label className="flex items-center justify-between gap-4">
+              <div className="space-y-1">
+                <span className="text-sm font-medium">Allow LAN access</span>
+                <p className="text-sm text-muted-foreground">
+                  Binds the proxy to all interfaces so other devices on your network can reach it.
+                  Restarts services when toggled.
+                </p>
+              </div>
+              <input
+                type="checkbox"
+                checked={settings.allowLanAccess}
+                onChange={(event) =>
+                  setSettings((current) => ({
+                    ...current,
+                    allowLanAccess: event.target.checked
+                  }))
+                }
+              />
+            </label>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Quota alerts</CardTitle>
@@ -141,7 +213,7 @@ export function SettingsPage() {
             </div>
 
             <Button onClick={() => void save()} disabled={saving}>
-              {saving ? "Saving..." : "Save quota settings"}
+              {saving ? "Saving..." : "Save settings"}
             </Button>
           </CardContent>
         </Card>

@@ -1,3 +1,4 @@
+use crate::settings::{load_desktop_settings, proxy_bind_host};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -131,9 +132,14 @@ impl SupervisorInner {
             }
         };
 
+        let allow_lan = load_desktop_settings()
+            .unwrap_or_default()
+            .allow_lan_access;
+        let bind_host = proxy_bind_host(allow_lan);
+
         command
             .env("DROIDPROXY_ROOT", &self.root_dir)
-            .env("DROIDPROXY_HOST", "127.0.0.1")
+            .env("DROIDPROXY_HOST", bind_host)
             .stdout(Stdio::null())
             .stderr(Stdio::null());
 

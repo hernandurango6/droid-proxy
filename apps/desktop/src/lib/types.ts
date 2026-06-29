@@ -66,6 +66,13 @@ export interface QuotaSettings {
   quotaNotificationsEnabled: boolean;
 }
 
+export interface DesktopSettings extends QuotaSettings {
+  autoStart: boolean;
+  minimizeToTray: boolean;
+  allowLanAccess: boolean;
+  autoStartRegistered?: boolean;
+}
+
 export interface FactoryModelsStatus {
   installed: boolean;
   expectedCount: number;
