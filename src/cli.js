@@ -2,8 +2,15 @@ const http = require("http");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const crypto = require("crypto");
 const { spawn, execFile } = require("child_process");
+const {
+  loadSettings,
+  saveSettings: persistSettings,
+  writeConfig: writeConfigFile,
+  parseCommandCodeApiKeys,
+  maskApiKey,
+  envFlag
+} = require("@droidproxy/core");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const AUTH_DIR = path.join(os.homedir(), ".cli-proxy-api");
@@ -1613,52 +1620,20 @@ function buildDroidProxyModelDefinitions() {
 }
 
 function writeConfig() {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
-  const templatePath = path.join(ROOT_DIR, "resources", "config.template.yaml");
-  let config = fs.readFileSync(templatePath, "utf8");
-  config = config
-    .replaceAll("__BACKEND_PORT__", String(BACKEND_PORT))
-    .replaceAll("__MANAGEMENT_SECRET_KEY__", settings.managementSecretKey)
-    .replaceAll("__DEBUG__", String(envFlag("DROIDPROXY_DEBUG")))
-    .replaceAll("__REQUEST_RETRY__", process.env.DROIDPROXY_REQUEST_RETRY || "3")
-    .replaceAll("__REQUEST_TIMEOUT__", process.env.DROIDPROXY_REQUEST_TIMEOUT || "10m");
-  fs.writeFileSync(CONFIG_PATH, config);
-  return CONFIG_PATH;
-}
-
-function loadSettings() {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
-
-  try {
-    const loaded = JSON.parse(fs.readFileSync(SETTINGS_PATH, "utf8"));
-    if (loaded && typeof loaded.managementSecretKey === "string" && loaded.managementSecretKey.length >= 24) {
-      return {
-        ...loaded,
-        factoryModelIds: Array.isArray(loaded.factoryModelIds) ? loaded.factoryModelIds : null,
-        commandCodeApiKeys: Array.isArray(loaded.commandCodeApiKeys)
-          ? parseCommandCodeApiKeys(loaded.commandCodeApiKeys.join("\n"))
-          : []
-      };
-    }
-  } catch {
-    // Missing or invalid settings are regenerated below.
-  }
-
-  const generated = {
-    managementSecretKey: generateSecretKey(),
-    commandCodeApiKeys: []
-  };
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(generated, null, 2));
-  return generated;
+  return writeConfigFile({
+    rootDir: ROOT_DIR,
+    managementSecretKey: settings.managementSecretKey,
+    configPath: CONFIG_PATH,
+    authDir: AUTH_DIR,
+    backendPort: BACKEND_PORT
+  });
 }
 
 function saveSettings() {
-  fs.mkdirSync(AUTH_DIR, { recursive: true });
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
-}
-
-function generateSecretKey() {
-  return crypto.randomBytes(32).toString("base64url");
+  persistSettings(settings, {
+    settingsPath: SETTINGS_PATH,
+    authDir: AUTH_DIR
+  });
 }
 
 function cliBinaryPath() {
@@ -1795,45 +1770,10 @@ function savedCommandCodeApiKeys() {
   return Array.isArray(settings.commandCodeApiKeys) ? settings.commandCodeApiKeys : [];
 }
 
-function parseCommandCodeApiKeys(value) {
-  const keys = [];
-  addCommandCodeApiKeys(keys, value);
-  return [...new Set(keys)];
-}
-
 function addCommandCodeApiKeyEntries(entries, value, source) {
   for (const apiKey of parseCommandCodeApiKeys(value)) {
     entries.push({ apiKey, source });
   }
-}
-
-function addCommandCodeApiKeys(keys, value) {
-  if (typeof value !== "string") return;
-  const trimmed = value.trim();
-  if (!trimmed) return;
-
-  if (trimmed.startsWith("[")) {
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        for (const item of parsed) addCommandCodeApiKeys(keys, item);
-        return;
-      }
-    } catch {
-      // Fall back to delimiter parsing below.
-    }
-  }
-
-  for (const apiKey of trimmed.split(/[\r\n,;]+/)) {
-    const normalized = apiKey.trim();
-    if (normalized) keys.push(normalized);
-  }
-}
-
-function maskApiKey(apiKey) {
-  const value = String(apiKey || "");
-  if (value.length <= 8) return "*".repeat(value.length);
-  return `${value.slice(0, 4)}...${value.slice(-4)}`;
 }
 
 function hasEnabledThinking(parsedBody) {
@@ -1893,10 +1833,6 @@ function detectPublicHost() {
     }
   }
   return "127.0.0.1";
-}
-
-function envFlag(name) {
-  return ["1", "true", "yes", "on"].includes(String(process.env[name] || "").toLowerCase());
 }
 
 function printHelp() {
