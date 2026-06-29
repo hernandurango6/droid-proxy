@@ -104,6 +104,8 @@ export const useAuthStore = create<AuthStoreState>()((set, get) => ({
           connectionError: message
         });
         return false;
+      } finally {
+        restoreSessionPromise = null;
       }
     })();
 
