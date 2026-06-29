@@ -1,0 +1,28 @@
+{
+  "name": "@droidproxy/sidecar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DroidProxy Node sidecar — proxy, backend spawn, and control API",
+  "main": "./dist/main.js",
+  "bin": {
+    "droidproxy-sidecar": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "start": "node dist/main.js",
+    "dev": "node --import tsx src/main.ts",
+    "compile": "pkg dist/main.js --targets node18-win-x64 --output dist/droidproxy-sidecar.exe",
+    "test": "node --import tsx --test src/__tests__/paths.test.ts src/__tests__/health.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@droidproxy/core": "workspace:*",
+    "@droidproxy/service": "workspace:*"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

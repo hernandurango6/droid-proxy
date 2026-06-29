@@ -3,12 +3,14 @@ import { test } from "node:test";
 import {
   BACKEND_HOST,
   DEFAULT_BACKEND_PORT,
+  DEFAULT_CONTROL_PORT,
   DEFAULT_DASHBOARD_PORT,
   DEFAULT_FRONTEND_PORT,
   getManagementUrl,
   getProxyBaseUrl,
   parsePort,
   resolveBackendPort,
+  resolveControlPort,
   resolveDashboardPort,
   resolveFrontendHost,
   resolveFrontendPort,
@@ -26,6 +28,7 @@ test("default service ports match cli.js", () => {
   assert.equal(DEFAULT_FRONTEND_PORT, 8417);
   assert.equal(DEFAULT_BACKEND_PORT, 8418);
   assert.equal(DEFAULT_DASHBOARD_PORT, 8419);
+  assert.equal(DEFAULT_CONTROL_PORT, 8420);
 });
 
 test("env resolvers honor DROIDPROXY_* variables", () => {
@@ -34,6 +37,7 @@ test("env resolvers honor DROIDPROXY_* variables", () => {
     DROIDPROXY_PORT: "9001",
     DROIDPROXY_BACKEND_PORT: "9002",
     DROIDPROXY_DASHBOARD_PORT: "9003",
+    DROIDPROXY_CONTROL_PORT: "9004",
     DROIDPROXY_PUBLIC_HOST: "192.168.1.10"
   };
 
@@ -41,6 +45,7 @@ test("env resolvers honor DROIDPROXY_* variables", () => {
   assert.equal(resolveFrontendPort(env), 9001);
   assert.equal(resolveBackendPort(env), 9002);
   assert.equal(resolveDashboardPort(env), 9003);
+  assert.equal(resolveControlPort(env), 9004);
   assert.equal(resolvePublicHost(env), "192.168.1.10");
 });
 
