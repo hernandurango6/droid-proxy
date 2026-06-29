@@ -1,11 +1,12 @@
 mod commands;
+mod management_webview;
 mod settings;
 mod supervisor;
 
 use commands::{
     lab_accounts, lab_apply_factory_models, lab_commandcode_keys, lab_config, lab_factory_models,
     lab_factory_models_selection, lab_login, lab_logs, lab_models, lab_open_path, lab_status,
-    mgmt_request, supervisor_restart,
+    mgmt_request, open_management_webview, supervisor_restart,
 };
 use supervisor::SupervisorState;
 use std::sync::Arc;
@@ -95,6 +96,7 @@ pub fn run() {
             lab_login,
             lab_open_path,
             mgmt_request,
+            open_management_webview,
             supervisor_restart
         ])
         .run(tauri::generate_context!())

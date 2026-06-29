@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useToast } from "../hooks/useToast";
-import { LOGIN_PROVIDERS, providerLabel } from "../lib/labels";
-import { droidproxy } from "../lib/tauri";
+import { toast } from "sonner";
+import { AppShell } from "@/components/AppShell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
+import { LOGIN_PROVIDERS, providerLabel } from "@/lib/labels";
+import { droidproxy } from "@/lib/tauri";
 import type {
   Account,
   ConfigPayload,
@@ -9,7 +16,7 @@ import type {
   FactoryModelsStatus,
   ModelEntry,
   StatusPayload
-} from "../lib/types";
+} from "@/lib/types";
 
 function factoryModelMatches(model: FactoryModel, query: string): boolean {
   if (!query) return true;
@@ -18,8 +25,15 @@ function factoryModelMatches(model: FactoryModel, query: string): boolean {
   );
 }
 
+function StatusBadge({ ready }: { ready: boolean }) {
+  return (
+    <Badge variant={ready ? "default" : "secondary"}>
+      {ready ? "Ready" : "Partial"}
+    </Badge>
+  );
+}
+
 export function DashboardPage() {
-  const { showToast } = useToast();
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [config, setConfig] = useState<ConfigPayload | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -34,9 +48,21 @@ export function DashboardPage() {
   );
 
   const endpoint = status?.proxy.baseUrl || status?.proxy.url || "";
+  const overallReady = Boolean(status?.proxy.running && status?.backend.running);
+  const control = status?.control;
+  const legacyDashboard = status?.dashboard;
+
+  const filteredFactoryModels = useMemo(() => {
+    const query = factorySearch.trim().toLowerCase();
+    return (factory?.models || []).filter((model) => factoryModelMatches(model, query));
+  }, [factory?.models, factorySearch]);
+
+  const managementKey =
+    config?.managementKeyMasked ||
+    (config?.managementKeyConfigured ? "(configured, masked)" : "not configured");
 
   const refreshAll = useCallback(async () => {
-    const results = await Promise.allSettled([
+    await Promise.allSettled([
       droidproxy.lab.status().then(setStatus),
       droidproxy.lab.config().then(setConfig),
       droidproxy.lab.accounts().then((data) => setAccounts(data.accounts || [])),
@@ -52,11 +78,6 @@ export function DashboardPage() {
       droidproxy.lab.factoryModels().then(setFactory),
       droidproxy.lab.logs().then((data) => setLogs(data.logs || []))
     ]);
-
-    const failed = results.filter((result) => result.status === "rejected");
-    if (failed.length > 0) {
-      console.error("Dashboard refresh failures", failed);
-    }
   }, []);
 
   useEffect(() => {
@@ -65,52 +86,32 @@ export function DashboardPage() {
     return () => window.clearInterval(timer);
   }, [refreshAll]);
 
-  const overallReady = Boolean(status?.proxy.running && status?.backend.running);
-  const control = status?.control;
-  const legacyDashboard = status?.dashboard;
-
-  const filteredFactoryModels = useMemo(() => {
-    const query = factorySearch.trim().toLowerCase();
-    return (factory?.models || []).filter((model) => factoryModelMatches(model, query));
-  }, [factory?.models, factorySearch]);
-
-  const managementKey = config?.managementKeyMasked
-    || (config?.managementKeyConfigured ? "(configured, masked)" : "not configured");
-
-  async function copyText(text: string, message: string) {
-    await navigator.clipboard.writeText(text);
-    showToast(message);
-  }
-
   async function saveCommandCodeKeys(event: React.FormEvent) {
     event.preventDefault();
     const result = await droidproxy.lab.commandCodeKeys(commandCodeInput);
     setCommandCodeInput("");
-    showToast(`Saved ${result.count} CommandCode key${result.count === 1 ? "" : "s"}.`);
+    toast.success(`Saved ${result.count} CommandCode key${result.count === 1 ? "" : "s"}.`);
     await refreshAll();
   }
 
   async function clearCommandCodeKeys() {
     const result = await droidproxy.lab.commandCodeKeys("");
     setCommandCodeInput("");
-    showToast(`Saved ${result.count} CommandCode keys.`);
+    toast.success(`Saved ${result.count} CommandCode keys.`);
     await refreshAll();
   }
 
   async function applyFactoryModels() {
     const result = await droidproxy.lab.applyFactoryModels();
-    showToast(`Applied ${result.count} Factory custom models.`);
+    toast.success(`Applied ${result.count} Factory custom models.`);
     await refreshAll();
   }
 
   async function updateFactorySelection(mode: "all" | "none") {
-    const ids =
-      mode === "all"
-        ? filteredFactoryModels.map((model) => model.id)
-        : [];
+    const ids = mode === "all" ? filteredFactoryModels.map((model) => model.id) : [];
     await droidproxy.lab.factoryModelsSelection(ids);
     await refreshAll();
-    showToast(mode === "all" ? "All Factory models selected." : "Factory model selection cleared.");
+    toast.success(mode === "all" ? "All Factory models selected." : "Factory model selection cleared.");
   }
 
   async function toggleFactoryModel(modelId: string, checked: boolean) {
@@ -119,358 +120,299 @@ export function DashboardPage() {
     const selected = new Set(factory.selectedIds);
     if (checked) selected.add(modelId);
     else selected.delete(modelId);
-
     const ids = factory.selectedIds
       .filter((id) => !visibleIds.has(id))
       .concat([...selected].filter((id) => visibleIds.has(id)));
-
     await droidproxy.lab.factoryModelsSelection(ids);
     await refreshAll();
   }
 
-  function toggleModels() {
-    const next = !modelsExpanded;
-    setModelsExpanded(next);
-    localStorage.setItem("droidproxy.modelsExpanded", String(next));
+  function openManagement() {
+    void droidproxy.management.openWebview().catch((error) => toast.error(String(error)));
   }
 
   return (
-    <>
-      <header className="topbar">
-        <div>
-          <h1>DroidProxy</h1>
-          <p id="endpoint">{endpoint || "Loading endpoint..."}</p>
-        </div>
-        <div className="top-actions">
-          <button type="button" onClick={() => void copyText(endpoint, "Endpoint copied.")}>
-            Copy Endpoint
-          </button>
-          <button type="button" onClick={() => void refreshAll()}>
-            Refresh
-          </button>
-        </div>
-      </header>
-
-      <main className="layout">
-        <section className="panel status-panel">
-          <div className="panel-header">
-            <h2>Status</h2>
-            <span className={`pill ${overallReady ? "ok" : "warn"}`}>
-              {overallReady ? "Ready" : "Partial"}
-            </span>
-          </div>
-          <div className="status-grid">
+    <AppShell endpoint={endpoint} onRefresh={() => void refreshAll()}>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between">
             <div>
-              <span className="label">Proxy</span>
-              <strong>{status?.proxy.running ? "Running" : "Stopped"}</strong>
-              <small>{status?.proxy.baseUrl || status?.proxy.url || "-"}</small>
+              <CardTitle>Status</CardTitle>
+              <CardDescription>Sidecar-supervised lab runtime</CardDescription>
             </div>
-            <div>
-              <span className="label">Backend</span>
-              <strong>
-                {status?.backend.running
-                  ? `Running · PID ${status.backend.pid}`
-                  : "Stopped"}
-              </strong>
-              <small>{status?.backend.url || "-"}</small>
+            <StatusBadge ready={overallReady} />
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Proxy</p>
+              <p className="font-medium">{status?.proxy.running ? "Running" : "Stopped"}</p>
+              <p className="font-mono text-xs text-muted-foreground">
+                {status?.proxy.baseUrl || status?.proxy.url || "-"}
+              </p>
             </div>
-            <div>
-              <span className="label">{control ? "Control API" : "Dashboard"}</span>
-              <strong>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Backend</p>
+              <p className="font-medium">
+                {status?.backend.running ? `Running · PID ${status.backend.pid}` : "Stopped"}
+              </p>
+              <p className="font-mono text-xs text-muted-foreground">{status?.backend.url || "-"}</p>
+            </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">{control ? "Control API" : "Dashboard"}</p>
+              <p className="font-medium">
                 {(control?.running ?? legacyDashboard?.running) ? "Running" : "Stopped"}
-              </strong>
-              <small>{control?.url || legacyDashboard?.url || "-"}</small>
+              </p>
+              <p className="font-mono text-xs text-muted-foreground">
+                {control?.url || legacyDashboard?.url || "-"}
+              </p>
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        <section className="panel">
-          <div className="panel-header">
-            <h2>OAuth</h2>
-            <button type="button" onClick={() => void droidproxy.lab.openPath("auth")}>
-              Open Auth Folder
-            </button>
-          </div>
-          <div className="button-grid">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>OAuth</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => void droidproxy.lab.openPath("auth")}>
+              Open auth folder
+            </Button>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-2">
             {LOGIN_PROVIDERS.map((provider) => (
-              <button
+              <Button
                 key={provider}
-                type="button"
-                className={provider === "claude" || provider === "codex" ? "primary" : ""}
+                variant={provider === "claude" || provider === "codex" ? "default" : "outline"}
+                size="sm"
                 onClick={() => {
                   void droidproxy.lab.login(provider).then(() => {
-                    showToast(`${providerLabel(provider)} login started. Complete the browser flow.`);
+                    toast.message(`${providerLabel(provider)} login started`);
                     window.setTimeout(() => void refreshAll(), 2000);
                   });
                 }}
               >
                 Login {providerLabel(provider)}
-              </button>
+              </Button>
             ))}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        <section className="panel">
-          <div className="panel-header">
-            <h2>Management Center</h2>
-            <button
-              type="button"
-              className="primary"
-              onClick={() => void droidproxy.lab.openPath("management")}
-            >
-              Open Advanced UI
-            </button>
-          </div>
-          <dl className="config-list">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
             <div>
-              <dt>URL</dt>
-              <dd>{config?.managementUrl || status?.management.url || "-"}</dd>
+              <CardTitle>Management Center</CardTitle>
+              <CardDescription>In-app quota via embedded webview (Beta)</CardDescription>
+            </div>
+            <Button size="sm" onClick={openManagement}>
+              Open quota UI
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div>
+              <p className="text-muted-foreground">URL</p>
+              <p className="font-mono text-xs">{config?.managementUrl || status?.management.url || "-"}</p>
             </div>
             <div>
-              <dt>Key</dt>
-              <dd>{managementKey}</dd>
+              <p className="text-muted-foreground">Key</p>
+              <p className="font-mono text-xs">{managementKey}</p>
             </div>
-          </dl>
-          <div className="panel-actions">
-            <button
-              type="button"
-              onClick={() =>
-                void copyText(config?.managementUrl || status?.management.url || "", "Management URL copied.")
-              }
-            >
-              Copy URL
-            </button>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        <section className="panel">
-          <div className="panel-header">
-            <h2>Accounts</h2>
-            <span className="pill muted">{accounts.length}</span>
-          </div>
-          <div className={`list ${accounts.length ? "" : "empty"}`}>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Accounts</CardTitle>
+            <Badge variant="secondary">{accounts.length}</Badge>
+          </CardHeader>
+          <CardContent className="space-y-2">
             {accounts.length === 0 ? (
-              "No accounts found."
+              <p className="text-sm text-muted-foreground">No accounts found.</p>
             ) : (
               accounts.map((account) => (
-                <div className="list-item" key={`${account.file}-${account.email}`}>
-                  <div>
-                    <strong>{account.email}</strong>
-                    <span>{account.file}</span>
-                  </div>
-                  <span>
-                    {account.type}
+                <div key={`${account.file}-${account.email}`} className="rounded-lg border p-3 text-sm">
+                  <p className="font-medium">{account.email}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {account.file} · {account.type}
                     {account.disabled ? " · disabled" : ""}
-                  </span>
+                  </p>
                 </div>
               ))
             )}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
 
-        <section className="panel">
-          <div className="panel-header">
-            <h2>CommandCode Keys</h2>
-            <span className="pill muted">{config?.configuredCommandCodeApiKeys.length || 0}</span>
-          </div>
-          <form className="key-form" onSubmit={(event) => void saveCommandCodeKeys(event)}>
-            <label className="search-box">
-              <span>API keys</span>
-              <textarea
-                rows={5}
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>CommandCode Keys</CardTitle>
+            <Badge variant="secondary">{config?.configuredCommandCodeApiKeys.length || 0}</Badge>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <form className="space-y-2" onSubmit={(event) => void saveCommandCodeKeys(event)}>
+              <Textarea
+                rows={4}
                 spellCheck={false}
                 placeholder="Paste one key per line or separate them with commas"
                 value={commandCodeInput}
                 onChange={(event) => setCommandCodeInput(event.target.value)}
               />
-            </label>
-            <div className="panel-actions">
-              <button className="primary" type="submit">
-                Save Keys
-              </button>
-              <button type="button" onClick={() => void clearCommandCodeKeys()}>
-                Clear
-              </button>
-            </div>
-          </form>
-          <div className={`list ${config?.configuredCommandCodeApiKeys.length ? "" : "empty"}`}>
-            {!config?.configuredCommandCodeApiKeys.length ? (
-              "No configured keys."
-            ) : (
-              config.configuredCommandCodeApiKeys.map((entry) => (
-                <div className="list-item" key={`${entry.key}-${entry.source}`}>
-                  <div>
-                    <strong>{entry.key}</strong>
-                    <span>{entry.source || "Configured"}</span>
-                  </div>
-                  <span>round robin</span>
+              <div className="flex gap-2">
+                <Button type="submit" size="sm">Save keys</Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => void clearCommandCodeKeys()}>
+                  Clear
+                </Button>
+              </div>
+            </form>
+            <div className="space-y-2">
+              {(config?.configuredCommandCodeApiKeys || []).map((entry) => (
+                <div key={`${entry.key}-${entry.source}`} className="rounded-lg border p-2 text-xs">
+                  <p className="font-medium">{entry.key}</p>
+                  <p className="text-muted-foreground">{entry.source || "Configured"} · round robin</p>
                 </div>
-              ))
-            )}
-          </div>
-        </section>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-        <section className="panel">
-          <div className="panel-header">
-            <h2>Models</h2>
-            <div className="header-actions">
-              <span className="pill muted">{models.length}</span>
-              <button
-                type="button"
-                aria-expanded={modelsExpanded}
-                onClick={toggleModels}
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Models</CardTitle>
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary">{models.length}</Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const next = !modelsExpanded;
+                  setModelsExpanded(next);
+                  localStorage.setItem("droidproxy.modelsExpanded", String(next));
+                }}
               >
                 {modelsExpanded ? "Hide" : "Show"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </CardHeader>
           {modelsExpanded && (
-            <div>
-              <div className={`list ${models.length || modelsError ? "" : "empty"}`}>
-                {modelsError ? (
-                  modelsError
-                ) : models.length === 0 ? (
-                  "No models loaded."
-                ) : (
-                  models.map((model) => (
-                    <div className="list-item" key={model.id}>
-                      <div>
-                        <strong>{model.id}</strong>
-                        <span>{model.owned_by || "unknown"}</span>
-                      </div>
-                      <span>{model.object || "model"}</span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            <CardContent className="space-y-2">
+              {modelsError ? (
+                <p className="text-sm text-destructive">{modelsError}</p>
+              ) : models.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No models loaded.</p>
+              ) : (
+                models.map((model) => (
+                  <div key={model.id} className="rounded-lg border p-2 text-xs">
+                    <p className="font-medium">{model.id}</p>
+                    <p className="text-muted-foreground">
+                      {model.owned_by || "unknown"} · {model.object || "model"}
+                    </p>
+                  </div>
+                ))
+              )}
+            </CardContent>
           )}
-        </section>
+        </Card>
 
-        <section className="panel">
-          <div className="panel-header">
-            <h2>Factory Custom Models</h2>
-            <span className={`pill ${factory?.installed ? "ok" : "warn"}`}>
-              {factory?.installed ? "Installed" : "Not Applied"}
-            </span>
-          </div>
-          <p className="panel-copy">
-            Writes DroidProxy model aliases into Factory settings and creates a timestamped backup first.
-          </p>
-          <div className="panel-actions">
-            <button type="button" className="primary" onClick={() => void applyFactoryModels()}>
-              Apply Models
-            </button>
-            <button type="button" onClick={() => void updateFactorySelection("all")}>
-              Select All
-            </button>
-            <button type="button" onClick={() => void updateFactorySelection("none")}>
-              Clear
-            </button>
-          </div>
-          <label className="search-box">
-            <span>Search models</span>
-            <input
-              type="search"
-              placeholder="Claude, GPT, Gemini, Kimi..."
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex-row items-center justify-between">
+            <div>
+              <CardTitle>Factory Custom Models</CardTitle>
+              <CardDescription>
+                Writes DroidProxy model aliases into Factory settings with timestamped backup.
+              </CardDescription>
+            </div>
+            <Badge variant={factory?.installed ? "default" : "secondary"}>
+              {factory?.installed ? "Installed" : "Not applied"}
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={() => void applyFactoryModels()}>Apply models</Button>
+              <Button variant="outline" size="sm" onClick={() => void updateFactorySelection("all")}>
+                Select all
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => void updateFactorySelection("none")}>
+                Clear
+              </Button>
+            </div>
+            <Input
+              placeholder="Search Claude, GPT, Gemini, Kimi..."
               value={factorySearch}
               onChange={(event) => setFactorySearch(event.target.value)}
             />
-          </label>
-          <dl className="config-list factory-meta">
-            <div>
-              <dt>Settings</dt>
-              <dd>{factory?.settingsPath || "-"}</dd>
-            </div>
-            <div>
-              <dt>Expected</dt>
-              <dd>
+            <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+              <p>Settings: {factory?.settingsPath || "-"}</p>
+              <p>
+                Expected:{" "}
                 {factory
-                  ? `${factory.installedCount}/${factory.selectedCount} selected models present (${factory.expectedCount} available)`
+                  ? `${factory.installedCount}/${factory.selectedCount} selected (${factory.expectedCount} available)`
                   : "-"}
-              </dd>
+              </p>
             </div>
-          </dl>
-          <div className={`selection-list ${filteredFactoryModels.length ? "" : "empty"}`}>
-            {filteredFactoryModels.length === 0 ? (
-              "No matching models."
-            ) : (
-              filteredFactoryModels.map((model) => (
-                <label className="selection-item" key={model.id}>
-                  <input
-                    type="checkbox"
-                    checked={factory?.selectedIds.includes(model.id) || false}
-                    onChange={(event) => void toggleFactoryModel(model.id, event.target.checked)}
-                  />
-                  <div>
-                    <strong>{model.displayName}</strong>
-                    <span>
-                      {model.model} · {model.provider} · {model.id}
-                    </span>
-                  </div>
-                </label>
-              ))
-            )}
-          </div>
-        </section>
+            <ScrollArea className="h-72 rounded-lg border p-2">
+              <div className="space-y-2">
+                {filteredFactoryModels.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No matching models.</p>
+                ) : (
+                  filteredFactoryModels.map((model) => (
+                    <label key={model.id} className="flex items-start gap-2 rounded-md border p-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={factory?.selectedIds.includes(model.id) || false}
+                        onChange={(event) => void toggleFactoryModel(model.id, event.target.checked)}
+                      />
+                      <span>
+                        <span className="font-medium">{model.displayName}</span>
+                        <span className="block text-xs text-muted-foreground">
+                          {model.model} · {model.provider} · {model.id}
+                        </span>
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
 
-        <section className="panel config-panel">
-          <div className="panel-header">
-            <h2>Config</h2>
-            <button type="button" onClick={() => void droidproxy.lab.openPath("config")}>
-              Open Config
-            </button>
-          </div>
-          <dl className="config-list">
-            <div>
-              <dt>Config</dt>
-              <dd>{config?.configPath || "-"}</dd>
-            </div>
-            <div>
-              <dt>Auth</dt>
-              <dd>{config?.authDir || "-"}</dd>
-            </div>
-            <div>
-              <dt>Factory</dt>
-              <dd>{config?.factorySettingsPath || "-"}</dd>
-            </div>
-            <div>
-              <dt>Debug</dt>
-              <dd>{config?.debug ? "enabled" : "disabled"}</dd>
-            </div>
-            <div>
-              <dt>CommandCode</dt>
-              <dd>
-                {config
-                  ? `${config.commandCodeApiKeyCount} key${config.commandCodeApiKeyCount === 1 ? "" : "s"}`
-                  : "-"}
-              </dd>
-            </div>
-            <div>
-              <dt>Fast Mode</dt>
-              <dd>
-                {[config?.gpt54FastMode ? "gpt-5.4" : null, config?.gpt55FastMode ? "gpt-5.5" : null]
-                  .filter(Boolean)
-                  .join(", ") || "disabled"}
-              </dd>
-            </div>
-            <div>
-              <dt>Timeout</dt>
-              <dd>
-                {config ? `${config.requestTimeout}, retry ${config.requestRetry}` : "-"}
-              </dd>
-            </div>
-          </dl>
-        </section>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Config</CardTitle>
+            <Button variant="outline" size="sm" onClick={() => void droidproxy.lab.openPath("config")}>
+              Open config
+            </Button>
+          </CardHeader>
+          <CardContent className="grid gap-2 text-sm">
+            <p><span className="text-muted-foreground">Config:</span> {config?.configPath || "-"}</p>
+            <p><span className="text-muted-foreground">Auth:</span> {config?.authDir || "-"}</p>
+            <p><span className="text-muted-foreground">Factory:</span> {config?.factorySettingsPath || "-"}</p>
+            <p><span className="text-muted-foreground">Debug:</span> {config?.debug ? "enabled" : "disabled"}</p>
+            <p>
+              <span className="text-muted-foreground">CommandCode:</span>{" "}
+              {config ? `${config.commandCodeApiKeyCount} keys` : "-"}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Fast mode:</span>{" "}
+              {[config?.gpt54FastMode ? "gpt-5.4" : null, config?.gpt55FastMode ? "gpt-5.5" : null]
+                .filter(Boolean)
+                .join(", ") || "disabled"}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Timeout:</span>{" "}
+              {config ? `${config.requestTimeout}, retry ${config.requestRetry}` : "-"}
+            </p>
+          </CardContent>
+        </Card>
 
-        <section className="panel logs-panel">
-          <div className="panel-header">
-            <h2>Logs</h2>
-            <span className="pill muted">{logs.length}</span>
-          </div>
-          <pre id="logs">{logs.join("\n")}</pre>
-        </section>
-      </main>
-    </>
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Logs</CardTitle>
+            <Badge variant="secondary">{logs.length}</Badge>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-64 rounded-lg border bg-muted/30 p-3">
+              <pre className="font-mono text-xs whitespace-pre-wrap">{logs.join("\n")}</pre>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+    </AppShell>
   );
 }
