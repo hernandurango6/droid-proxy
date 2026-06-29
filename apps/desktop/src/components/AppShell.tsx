@@ -14,22 +14,17 @@ interface AppShellProps {
 }
 
 const MANAGEMENT_SECTIONS = [
-  { label: "Overview", hash: "#/", icon: LayoutDashboard },
-  { label: "Quota", hash: "#/quota", icon: BarChart3 },
-  { label: "Auth Files", hash: "#/auth-files", icon: FileKey },
-  { label: "Config", hash: "#/config", icon: Settings },
-  { label: "Logs", hash: "#/logs", icon: ScrollText }
+  { label: "Overview", path: "/management", icon: LayoutDashboard },
+  { label: "Quota", path: "/management/quota", icon: BarChart3 },
+  { label: "Auth Files", path: "/management/auth-files", icon: FileKey },
+  { label: "Config", path: "/management/config", icon: Settings },
+  { label: "Logs", path: "/management/logs", icon: ScrollText }
 ] as const;
-
-function managementLink(hash: string) {
-  return { pathname: "/management", hash };
-}
 
 export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
   const location = useLocation();
   const onHome = location.pathname === "/";
   const inManagement = location.pathname.startsWith("/management");
-  const currentHash = location.hash || "#/";
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,17 +90,17 @@ export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
             Settings
           </Link>
           {MANAGEMENT_SECTIONS.map((section) => {
-            const href = managementLink(section.hash);
             const active =
               inManagement &&
-              (section.hash === "#/"
-                ? currentHash === "#/" || currentHash === ""
-                : currentHash === section.hash);
+              (section.path === "/management"
+                ? location.pathname === "/management" || location.pathname === "/management/"
+                : location.pathname === section.path ||
+                  location.pathname.startsWith(`${section.path}/`));
             const Icon = section.icon;
             return (
               <Link
-                key={section.hash}
-                to={href}
+                key={section.path}
+                to={section.path}
                 className={cn(
                   buttonVariants({ variant: active ? "secondary" : "outline", size: "sm" })
                 )}

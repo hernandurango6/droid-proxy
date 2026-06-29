@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { RefreshCw } from "lucide-react";
-import { LoadingSpinner } from "@droidproxy/management-ui/components/ui/LoadingSpinner";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "./useAuthStore.shim";
@@ -27,8 +26,13 @@ export function ProtectedRoute({ children }: { children: ReactElement }) {
     connectionStatus === "disconnected"
   ) {
     return (
-      <div className="main-content flex min-h-[50vh] items-center justify-center">
-        <LoadingSpinner />
+      <div className="main-content flex min-h-[50vh] flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
+        <div
+          className="size-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"
+          role="status"
+          aria-live="polite"
+        />
+        <p>Connecting to Management Center…</p>
       </div>
     );
   }

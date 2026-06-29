@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
-import { HashRouter, Link, Outlet, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ConfirmationModal } from "@droidproxy/management-ui/components/common/ConfirmationModal";
 import { NotificationContainer } from "@droidproxy/management-ui/components/common/NotificationContainer";
 import { MainLayout } from "@droidproxy/management-ui/components/layout/MainLayout";
@@ -13,33 +13,20 @@ import { cn } from "@/lib/utils";
 import "@droidproxy/management-ui/styles/global.scss";
 import "@droidproxy/management-ui/i18n/index";
 
+const MANAGEMENT_BASENAME = "/management";
+
 type ThemeStoreSlice = { initializeTheme: () => () => void };
 type LanguageStoreSlice = { language: string; setLanguage: (language: string) => void };
 
-function RootShell() {
+function ManagementShell() {
   return (
     <>
       <NotificationContainer />
       <ConfirmationModal />
-      <Outlet />
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
     </>
-  );
-}
-
-function ManagementRoutes() {
-  return (
-    <Routes>
-      <Route element={<RootShell />}>
-        <Route
-          path="/*"
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        />
-      </Route>
-    </Routes>
   );
 }
 
@@ -64,24 +51,6 @@ function ManagementBootstrap({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-/** Hash routes under /management need a non-empty fragment for the nested HashRouter. */
-function useEnsureManagementHash() {
-  const location = useLocation();
-
-  useEffect(() => {
-    if (!location.pathname.startsWith("/management")) {
-      return;
-    }
-
-    const hash = window.location.hash.replace(/^#/, "");
-    if (!hash || hash === "/") {
-      if (window.location.hash !== "#/") {
-        window.location.hash = "#/";
-      }
-    }
-  }, [location.pathname, location.key]);
-}
-
 function ManagementLoading() {
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 text-sm text-muted-foreground">
@@ -103,39 +72,25 @@ export function ManagementApp() {
     void restoreSession().finally(() => setBootstrapped(true));
   }, [restoreSession]);
 
-  useEffect(() => {
-    if (!bootstrapped) {
-      return;
-    }
-    if (window.location.pathname.startsWith("/management") && !window.location.hash) {
-      window.location.hash = "#/";
-    }
-  }, [bootstrapped]);
-
   return (
     <div className="management-ui-root min-h-screen bg-background text-foreground">
       <ManagementBootstrap>
         <div className="border-b bg-background/90 px-4 py-3">
-          <Link to="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+          <a href="/" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
             <ArrowLeft className="size-4" />
             Back to Lab
-          </Link>
+          </a>
         </div>
         {!bootstrapped ? (
           <ManagementLoading />
         ) : (
-          <HashRouter>
-            <ManagementHashBootstrap>
-              <ManagementRoutes />
-            </ManagementHashBootstrap>
-          </HashRouter>
+          <BrowserRouter basename={MANAGEMENT_BASENAME}>
+            <Routes>
+              <Route path="*" element={<ManagementShell />} />
+            </Routes>
+          </BrowserRouter>
         )}
       </ManagementBootstrap>
     </div>
   );
-}
-
-function ManagementHashBootstrap({ children }: { children: ReactNode }) {
-  useEnsureManagementHash();
-  return <>{children}</>;
 }
