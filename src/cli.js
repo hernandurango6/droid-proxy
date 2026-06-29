@@ -9,7 +9,17 @@ const {
   writeConfig: writeConfigFile,
   parseCommandCodeApiKeys,
   maskApiKey,
-  envFlag
+  envFlag,
+  COMMANDCODE_MODELS,
+  DEFAULT_COMMANDCODE_API_URL,
+  getCommandCodeAuthPath,
+  handleProxyRequest: handleProxyRequestCore,
+  sendJSON,
+  requestJSON,
+  commandCodeOpenAIModels,
+  commandCodeSlug,
+  resolveCommandCodeApiKeyEntries,
+  CommandCodeApiKeyRotator
 } = require("@droidproxy/core");
 const {
   startBackendProcess,
@@ -36,52 +46,8 @@ const DASHBOARD_PORT = parsePort(process.env.DROIDPROXY_DASHBOARD_PORT, 8419);
 const PUBLIC_HOST = process.env.DROIDPROXY_PUBLIC_HOST || detectPublicHost();
 const DASHBOARD_DIR = path.join(ROOT_DIR, "dashboard");
 const MANAGEMENT_URL = `http://${BACKEND_HOST}:${BACKEND_PORT}/management.html`;
-const COMMANDCODE_API_URL = process.env.DROIDPROXY_COMMANDCODE_URL || "https://api.commandcode.ai/alpha/generate";
-const COMMANDCODE_AUTH_PATH = path.join(os.homedir(), ".commandcode", "auth.json");
-const COMMANDCODE_MODELS = [
-  { id: "deepseek/deepseek-v4-pro", name: "DeepSeek V4 Pro", levels: ["high", "max"], defaultLevel: "max" },
-  { id: "deepseek/deepseek-v4-flash", name: "DeepSeek V4 Flash", levels: ["high", "max"], defaultLevel: "max" },
-  { id: "moonshotai/Kimi-K2.7-Code", name: "Kimi K2.7 Code", vision: true, reasoning: true },
-  { id: "moonshotai/Kimi-K2.7-Code-Highspeed", name: "Kimi K2.7 Code Highspeed", vision: true, reasoning: true },
-  { id: "moonshotai/Kimi-K2.6", name: "Kimi K2.6", vision: true },
-  { id: "moonshotai/Kimi-K2.5", name: "Kimi K2.5", vision: true },
-  { id: "zai-org/GLM-5.2", name: "GLM 5.2" },
-  { id: "zai-org/GLM-5.1", name: "GLM 5.1" },
-  { id: "zai-org/GLM-5", name: "GLM 5" },
-  { id: "MiniMaxAI/MiniMax-M3", name: "MiniMax M3", vision: true, reasoning: true },
-  { id: "MiniMaxAI/MiniMax-M2.7", name: "MiniMax M2.7" },
-  { id: "MiniMaxAI/MiniMax-M2.5", name: "MiniMax M2.5" },
-  { id: "xiaomi/mimo-v2.5-pro", name: "MiMo V2.5 Pro" },
-  { id: "xiaomi/mimo-v2.5", name: "MiMo V2.5", vision: true },
-  { id: "Qwen/Qwen3.6-Max-Preview", name: "Qwen 3.6 Max Preview", reasoning: true },
-  { id: "Qwen/Qwen3.6-Plus", name: "Qwen 3.6 Plus", vision: true, reasoning: true },
-  { id: "Qwen/Qwen3.7-Max", name: "Qwen 3.7 Max", reasoning: true },
-  { id: "Qwen/Qwen3.7-Plus", name: "Qwen 3.7 Plus", vision: true, reasoning: true },
-  { id: "stepfun/Step-3.7-Flash", name: "Step 3.7 Flash", vision: true, reasoning: true },
-  { id: "stepfun/Step-3.5-Flash", name: "Step 3.5 Flash", reasoning: true },
-  { id: "nvidia/nemotron-3-ultra-550b-a55b", name: "Nemotron 3 Ultra 550B A55B", reasoning: true },
-  { id: "claude-sonnet-4-6", name: "Claude Sonnet 4.6" },
-  { id: "claude-fable-5", name: "Claude Fable 5" },
-  { id: "claude-opus-4-8", name: "Claude Opus 4.8" },
-  { id: "claude-opus-4-7", name: "Claude Opus 4.7" },
-  { id: "claude-haiku-4-5", name: "Claude Haiku 4.5" },
-  { id: "gpt-5.5", name: "GPT 5.5" },
-  { id: "gpt-5.4", name: "GPT 5.4" },
-  { id: "gpt-5.3-codex", name: "GPT 5.3 Codex" },
-  { id: "gpt-5.4-mini", name: "GPT 5.4 Mini" },
-  { id: "google/gemini-3.5-flash", name: "Gemini 3.5 Flash" },
-  { id: "google/gemini-3.1-flash-lite", name: "Gemini 3.1 Flash Lite" },
-  { id: "sakana/fugu-ultra", name: "Fugu Ultra" }
-];
-
-const CLAUDE_REDACTED_THINKING_BETA = "redact-thinking-2026-02-12";
-const CLAUDE_VISIBLE_THINKING_BETAS = [
-  "claude-code-20250219",
-  "interleaved-thinking-2025-05-14",
-  "prompt-caching-2024-07-31",
-  "context-1m-2025-08-07",
-  "output-128k-2025-02-19"
-];
+const COMMANDCODE_API_URL = process.env.DROIDPROXY_COMMANDCODE_URL || DEFAULT_COMMANDCODE_API_URL;
+const COMMANDCODE_AUTH_PATH = getCommandCodeAuthPath();
 
 const LOGIN_FLAGS = {
   claude: "-claude-login",
@@ -101,7 +67,7 @@ let frontendServer = null;
 let dashboardServer = null;
 let appLogs = [];
 let settings = loadSettings();
-let commandCodeApiKeyIndex = 0;
+const commandCodeApiKeyRotator = new CommandCodeApiKeyRotator();
 
 main().catch((error) => {
   console.error(error.stack || error.message);
@@ -204,613 +170,24 @@ function startDashboard() {
   });
 }
 
+function proxyRequestContext() {
+  return {
+    backendHost: BACKEND_HOST,
+    backendPort: BACKEND_PORT,
+    onLog: pushLog,
+    onDebugLog: appendDebugLog,
+    apiUrl: COMMANDCODE_API_URL,
+    authPath: COMMANDCODE_AUTH_PATH,
+    env: process.env,
+    savedKeys: savedCommandCodeApiKeys(),
+    rotator: commandCodeApiKeyRotator,
+    cwd: process.cwd(),
+    platform: process.platform
+  };
+}
+
 async function handleProxyRequest(clientReq, clientRes) {
-  const chunks = [];
-  for await (const chunk of clientReq) {
-    chunks.push(chunk);
-  }
-
-  const originalBody = Buffer.concat(chunks);
-  let body = originalBody;
-  let parsedBody = parseJSONBody(originalBody);
-  let targetPath = rewriteGeminiResponsesPath(clientReq.url || "/", parsedBody);
-  let headers = { ...clientReq.headers };
-
-  if (clientReq.method === "GET" && isModelsPath(targetPath)) {
-    await handleModelsProxyRequest(clientRes);
-    return;
-  }
-
-  delete headers.host;
-  delete headers["content-length"];
-
-  headers = rewriteClaudeThinkingBetas(headers, parsedBody);
-
-  const fastModeResult = processOpenAIFastMode(targetPath, body, parsedBody);
-  if (fastModeResult.changed) {
-    body = Buffer.from(fastModeResult.body, "utf8");
-    parsedBody = fastModeResult.parsedBody;
-  }
-
-  if (clientReq.method === "POST" && isChatCompletionsPath(targetPath) && isCommandCodeModel(parsedBody?.model)) {
-    await handleCommandCodeRequest(parsedBody, clientRes);
-    return;
-  }
-
-  if (body.length > 0) {
-    headers["content-length"] = Buffer.byteLength(body);
-  }
-
-  logRequestReasoning(parsedBody);
-
-  await forwardRequest({
-    method: clientReq.method,
-    path: targetPath,
-    headers,
-    body,
-    clientRes
-  });
-}
-
-async function handleModelsProxyRequest(clientRes) {
-  let backendModels = [];
-  try {
-    const payload = await requestJSON({
-      host: BACKEND_HOST,
-      port: BACKEND_PORT,
-      path: "/v1/models",
-      timeoutMs: 5000
-    });
-    backendModels = Array.isArray(payload.data) ? payload.data : [];
-  } catch (error) {
-    pushLog(`Backend models unavailable: ${error.message}`);
-  }
-
-  sendJSON(clientRes, 200, {
-    object: "list",
-    data: backendModels.concat(commandCodeOpenAIModels())
-  });
-}
-
-async function handleCommandCodeRequest(parsedBody, clientRes) {
-  const apiKeys = commandCodeApiKeys();
-  if (apiKeys.length === 0) {
-    sendJSON(clientRes, 401, {
-      error: "commandcode_auth_missing",
-      message: `Set DROIDPROXY_COMMANDCODE_API_KEYS, DROIDPROXY_COMMANDCODE_API_KEY, or login with CommandCode so ${COMMANDCODE_AUTH_PATH} contains apiKey/apiKeys.`
-    });
-    return;
-  }
-
-  const upstreamModel = commandCodeUpstreamModel(parsedBody.model);
-  const wantsStream = parsedBody.stream !== false;
-  const commandBody = openAIToCommandCode(upstreamModel, parsedBody, true);
-  const response = await fetchCommandCodeWithApiKeys(apiKeys, JSON.stringify(commandBody));
-
-  if (!response.ok || !response.body) {
-    const text = await response.text().catch(() => "");
-    sendJSON(clientRes, response.status || 502, {
-      error: "commandcode_upstream_error",
-      status: response.status,
-      message: text.slice(0, 1000)
-    });
-    return;
-  }
-
-  if (wantsStream) {
-    await streamCommandCodeAsOpenAI(response, upstreamModel, clientRes);
-    return;
-  }
-
-  const completion = await collectCommandCodeCompletion(response, upstreamModel);
-  sendJSON(clientRes, 200, completion);
-}
-
-async function fetchCommandCodeWithApiKeys(apiKeys, body) {
-  let lastError = null;
-
-  for (let attempt = 0; attempt < apiKeys.length; attempt++) {
-    const selection = nextCommandCodeApiKey(apiKeys);
-
-    try {
-      const response = await fetch(COMMANDCODE_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "text/event-stream",
-          Authorization: `Bearer ${selection.apiKey}`,
-          "x-session-id": crypto.randomUUID(),
-          "x-command-code-version": "0.25.7",
-          "x-cli-environment": "cli"
-        },
-        body
-      });
-
-      if (response.ok || !shouldRetryCommandCodeStatus(response.status) || attempt === apiKeys.length - 1) {
-        return response;
-      }
-
-      await response.text().catch(() => "");
-      pushLog(`CommandCode key ${selection.index + 1}/${apiKeys.length} returned HTTP ${response.status}; trying next key`);
-    } catch (error) {
-      lastError = error;
-      if (attempt === apiKeys.length - 1) throw error;
-      pushLog(`CommandCode key ${selection.index + 1}/${apiKeys.length} failed: ${error.message}; trying next key`);
-    }
-  }
-
-  throw lastError || new Error("No CommandCode API key attempt was made");
-}
-
-function nextCommandCodeApiKey(apiKeys) {
-  const index = commandCodeApiKeyIndex % apiKeys.length;
-  commandCodeApiKeyIndex = (commandCodeApiKeyIndex + 1) % apiKeys.length;
-  return { apiKey: apiKeys[index], index };
-}
-
-function shouldRetryCommandCodeStatus(status) {
-  return status === 401 || status === 403 || status === 429 || status >= 500;
-}
-
-async function streamCommandCodeAsOpenAI(response, model, clientRes) {
-  clientRes.writeHead(200, {
-    "content-type": "text/event-stream; charset=utf-8",
-    "cache-control": "no-cache",
-    connection: "keep-alive",
-    "access-control-allow-origin": "*"
-  });
-
-  const decoder = new TextDecoder();
-  const state = { model };
-  let buffer = "";
-
-  for await (const chunk of response.body) {
-    buffer += decoder.decode(chunk, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-    for (const line of lines) {
-      writeOpenAIChunks(clientRes, convertCommandCodeToOpenAI(line, state));
-    }
-  }
-
-  const rest = buffer.trim();
-  if (rest) writeOpenAIChunks(clientRes, convertCommandCodeToOpenAI(rest, state));
-  clientRes.end("data: [DONE]\n\n");
-}
-
-async function collectCommandCodeCompletion(response, model) {
-  const decoder = new TextDecoder();
-  const state = { model };
-  let buffer = "";
-  let content = "";
-  let reasoning = "";
-  let finishReason = "stop";
-  let usage = null;
-
-  const consume = (line) => {
-    const chunks = convertCommandCodeToOpenAI(line, state) || [];
-    for (const chunk of chunks) {
-      const choice = chunk.choices && chunk.choices[0];
-      const delta = choice && choice.delta || {};
-      if (delta.content) content += delta.content;
-      if (delta.reasoning_content) reasoning += delta.reasoning_content;
-      if (choice && choice.finish_reason) finishReason = choice.finish_reason;
-      if (chunk.usage) usage = chunk.usage;
-    }
-  };
-
-  for await (const chunk of response.body) {
-    buffer += decoder.decode(chunk, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-    for (const line of lines) consume(line);
-  }
-  if (buffer.trim()) consume(buffer.trim());
-
-  const message = { role: "assistant", content };
-  if (reasoning) message.reasoning_content = reasoning;
-  const result = {
-    id: state.responseId || `chatcmpl-${Date.now()}`,
-    object: "chat.completion",
-    created: state.created || Math.floor(Date.now() / 1000),
-    model,
-    choices: [{ index: 0, message, finish_reason: finishReason }]
-  };
-  if (usage) result.usage = usage;
-  return result;
-}
-
-function writeOpenAIChunks(clientRes, chunks) {
-  if (!chunks) return;
-  for (const chunk of Array.isArray(chunks) ? chunks : [chunks]) {
-    if (chunk) clientRes.write(`data: ${JSON.stringify(chunk)}\n\n`);
-  }
-}
-
-function openAIToCommandCode(model, body, stream) {
-  const { messages, system } = commandCodeMessages(body.messages);
-  const params = {
-    model,
-    messages,
-    stream: stream !== false,
-    max_tokens: body.max_tokens ?? body.max_output_tokens ?? 64000,
-    temperature: body.temperature ?? 0.3
-  };
-  if (system) params.system = system;
-  if (body.top_p != null) params.top_p = body.top_p;
-  const reasoningEffort = commandCodeReasoningEffort(model, body);
-  if (reasoningEffort) params.reasoning_effort = reasoningEffort;
-
-  const tools = commandCodeTools(body.tools);
-  if (tools) params.tools = tools;
-
-  const today = new Date().toISOString().slice(0, 10);
-  return {
-    threadId: crypto.randomUUID(),
-    memory: "",
-    config: {
-      workingDir: process.cwd(),
-      date: today,
-      environment: process.platform,
-      structure: [],
-      isGitRepo: false,
-      currentBranch: "",
-      mainBranch: "",
-      gitStatus: "",
-      recentCommits: []
-    },
-    params
-  };
-}
-
-function commandCodeMessages(messages = []) {
-  const converted = [];
-  const system = [];
-
-  for (const message of messages || []) {
-    if (!message) continue;
-    if (message.role === "system") {
-      const text = contentText(message.content);
-      if (text) system.push(text);
-      continue;
-    }
-
-    if (message.role === "tool") {
-      const output = typeof message.content === "string" ? message.content : contentText(message.content);
-      converted.push({
-        role: "tool",
-        content: [{
-          type: "tool-result",
-          toolCallId: message.tool_call_id || "",
-          toolName: message.name || "",
-          output: { type: "text", value: output }
-        }]
-      });
-      continue;
-    }
-
-    if (message.role === "assistant") {
-      const content = [];
-      const text = contentText(message.content);
-      if (text) content.push({ type: "text", text });
-      if (Array.isArray(message.tool_calls)) {
-        for (const toolCall of message.tool_calls) {
-          const fn = toolCall.function || {};
-          content.push({
-            type: "tool-call",
-            toolCallId: toolCall.id || "",
-            toolName: fn.name || "",
-            input: parseToolArguments(fn.arguments)
-          });
-        }
-      }
-      converted.push({
-        role: "assistant",
-        content: content.length ? content : [{ type: "text", text: "" }]
-      });
-      continue;
-    }
-
-    converted.push({
-      role: "user",
-      content: commandCodeUserContent(message.content)
-    });
-  }
-
-  return { messages: converted, system: system.join("\n\n") };
-}
-
-function commandCodeUserContent(content) {
-  if (content == null) return [{ type: "text", text: "" }];
-  if (typeof content === "string") return [{ type: "text", text: content }];
-  if (!Array.isArray(content)) return [{ type: "text", text: String(content) }];
-
-  const blocks = [];
-  for (const item of content) {
-    if (typeof item === "string") {
-      blocks.push({ type: "text", text: item });
-      continue;
-    }
-    if (!item || typeof item !== "object") continue;
-    if (item.type === "text" && typeof item.text === "string") {
-      blocks.push({ type: "text", text: item.text });
-    } else if (item.type === "image_url") {
-      blocks.push({ type: "image", image: item.image_url?.url || "" });
-    } else if (item.type === "image") {
-      blocks.push({ type: "image", image: commandCodeImageValue(item) });
-    } else if (typeof item.text === "string") {
-      blocks.push({ type: "text", text: item.text });
-    }
-  }
-  return blocks.length ? blocks : [{ type: "text", text: "" }];
-}
-
-function commandCodeImageValue(item) {
-  if (typeof item.image === "string") return item.image;
-  if (typeof item.url === "string") return item.url;
-  if (item.source?.data) {
-    const mediaType = item.source.media_type || item.source.mime_type || "image/png";
-    return `data:${mediaType};base64,${item.source.data}`;
-  }
-  if (typeof item.data === "string") {
-    const mediaType = item.media_type || item.mime_type || "image/png";
-    return item.data.startsWith("data:") ? item.data : `data:${mediaType};base64,${item.data}`;
-  }
-  return "";
-}
-
-function contentText(content) {
-  if (content == null) return "";
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    const parts = [];
-    for (const item of content) {
-      if (typeof item === "string") parts.push(item);
-      else if (item && typeof item === "object" && typeof item.text === "string") parts.push(item.text);
-    }
-    return parts.join("\n");
-  }
-  return String(content);
-}
-
-function parseToolArguments(value) {
-  if (value == null) return {};
-  if (typeof value !== "string") return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return {};
-  }
-}
-
-function commandCodeTools(tools) {
-  if (!Array.isArray(tools) || tools.length === 0) return undefined;
-  const converted = [];
-  for (const tool of tools) {
-    if (!tool) continue;
-    if (tool.type === "function" && tool.function) {
-      converted.push({
-        name: tool.function.name,
-        description: tool.function.description,
-        input_schema: tool.function.parameters || { type: "object" }
-      });
-    } else if (tool.name && (tool.input_schema || tool.parameters)) {
-      converted.push({
-        name: tool.name,
-        description: tool.description,
-        input_schema: tool.input_schema || tool.parameters
-      });
-    }
-  }
-  return converted.length ? converted : undefined;
-}
-
-function commandCodeReasoningEffort(model, body) {
-  const explicit = normalizeCommandCodeEffort(
-    body.reasoning_effort
-    || body.reasoningEffort
-    || body.reasoning?.effort
-    || body.thinking?.effort
-    || body.thinking?.budget
-  );
-  if (explicit) return explicit;
-
-  const configured = commandCodeConfiguredEfforts();
-  return normalizeCommandCodeEffort(configured[model]);
-}
-
-function normalizeCommandCodeEffort(value) {
-  const text = String(value || "").toLowerCase();
-  return ["low", "medium", "high", "xhigh", "max"].includes(text) ? text : "";
-}
-
-function commandCodeConfiguredEfforts() {
-  try {
-    const configPath = path.join(os.homedir(), ".commandcode", "config.json");
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    return config && typeof config.reasoningEffort === "object" ? config.reasoningEffort : {};
-  } catch {
-    return {};
-  }
-}
-
-function convertCommandCodeToOpenAI(event, state) {
-  if (!event) return null;
-  if (event && typeof event === "object" && event.object === "chat.completion.chunk") return event;
-
-  let data = event;
-  if (typeof event === "string") {
-    const trimmed = event.trim();
-    if (!trimmed) return null;
-    const payload = trimmed.startsWith("data:") ? trimmed.slice(5).trim() : trimmed;
-    if (!payload || payload === "[DONE]") return null;
-    try {
-      data = JSON.parse(payload);
-    } catch {
-      return null;
-    }
-  }
-  if (!data || typeof data !== "object" || !data.type) return null;
-
-  initCommandCodeStreamState(state, data.model);
-  const chunks = [];
-  const push = (delta, finishReason = null) => chunks.push(openAIChunk(state, delta, finishReason));
-
-  switch (data.type) {
-    case "text-delta": {
-      const text = data.text || data.delta || "";
-      if (text) {
-        push(state.chunkIndex === 0 ? { role: "assistant", content: text } : { content: text });
-        state.chunkIndex += 1;
-      }
-      break;
-    }
-    case "reasoning-delta": {
-      const text = data.text || "";
-      if (text) {
-        push(state.chunkIndex === 0 ? { role: "assistant", reasoning_content: text } : { reasoning_content: text });
-        state.chunkIndex += 1;
-      }
-      break;
-    }
-    case "tool-input-start": {
-      const id = data.id || data.toolCallId || `call_${Date.now()}_${state.toolIndex}`;
-      let index = state.toolIndexById.get(id);
-      if (index == null) {
-        index = state.toolIndex++;
-        state.toolIndexById.set(id, index);
-      }
-      push({
-        ...(state.chunkIndex === 0 ? { role: "assistant" } : {}),
-        tool_calls: [{
-          index,
-          id,
-          type: "function",
-          function: { name: data.toolName || "", arguments: "" }
-        }]
-      });
-      state.chunkIndex += 1;
-      break;
-    }
-    case "tool-input-delta": {
-      const index = state.toolIndexById.get(data.id || data.toolCallId);
-      if (index != null) {
-        push({ tool_calls: [{ index, function: { arguments: data.delta || data.inputTextDelta || "" } }] });
-      }
-      break;
-    }
-    case "tool-call": {
-      const id = data.toolCallId || data.id || `call_${Date.now()}_${state.toolIndex}`;
-      if (!state.toolIndexById.has(id)) {
-        const index = state.toolIndex++;
-        state.toolIndexById.set(id, index);
-        const args = typeof data.input === "string" ? data.input : JSON.stringify(data.input ?? {});
-        push({
-          ...(state.chunkIndex === 0 ? { role: "assistant" } : {}),
-          tool_calls: [{
-            index,
-            id,
-            type: "function",
-            function: { name: data.toolName || "", arguments: args }
-          }]
-        });
-        state.chunkIndex += 1;
-      }
-      break;
-    }
-    case "finish-step":
-      state.finishReason = commandCodeFinishReason(data.finishReason);
-      if (data.usage) state.usage = data.usage;
-      break;
-    case "finish": {
-      const finishReason = state.finishReason || commandCodeFinishReason(data.finishReason || "stop");
-      const chunk = openAIChunk(state, {}, finishReason);
-      const usage = data.totalUsage || state.usage;
-      if (usage) chunk.usage = commandCodeUsage(usage);
-      chunks.push(chunk);
-      break;
-    }
-    case "error": {
-      const error = data.error ?? data.message ?? "unknown";
-      const text = typeof error === "string" ? error : JSON.stringify(error);
-      push({ content: `\n\n[CommandCode error: ${text}]` });
-      push({}, "stop");
-      break;
-    }
-  }
-
-  return chunks.length ? chunks : null;
-}
-
-function initCommandCodeStreamState(state, model) {
-  if (state.responseId) return;
-  state.responseId = `chatcmpl-${Date.now()}`;
-  state.created = Math.floor(Date.now() / 1000);
-  state.model = state.model || model || "commandcode";
-  state.chunkIndex = 0;
-  state.toolIndex = 0;
-  state.toolIndexById = new Map();
-  state.finishReason = null;
-  state.usage = null;
-}
-
-function openAIChunk(state, delta, finishReason = null) {
-  return {
-    id: state.responseId,
-    object: "chat.completion.chunk",
-    created: state.created,
-    model: state.model,
-    choices: [{ index: 0, delta, finish_reason: finishReason }]
-  };
-}
-
-function commandCodeFinishReason(reason) {
-  switch (reason) {
-    case "stop":
-    case "error":
-      return "stop";
-    case "length":
-      return "length";
-    case "tool-calls":
-    case "tool_use":
-      return "tool_calls";
-    case "content-filter":
-      return "content_filter";
-    default:
-      return reason || "stop";
-  }
-}
-
-function commandCodeUsage(usage) {
-  const prompt = usage.inputTokens ?? 0;
-  const completion = usage.outputTokens ?? 0;
-  return {
-    prompt_tokens: prompt,
-    completion_tokens: completion,
-    total_tokens: usage.totalTokens ?? prompt + completion
-  };
-}
-
-function forwardRequest({ method, path: requestPath, headers, body, clientRes }) {
-  return new Promise((resolve, reject) => {
-    const upstreamReq = http.request({
-      host: BACKEND_HOST,
-      port: BACKEND_PORT,
-      method,
-      path: requestPath,
-      headers
-    }, (upstreamRes) => {
-      clientRes.writeHead(upstreamRes.statusCode || 502, upstreamRes.statusMessage, upstreamRes.headers);
-      upstreamRes.pipe(clientRes);
-      upstreamRes.on("end", resolve);
-    });
-
-    upstreamReq.on("error", reject);
-    if (body.length > 0) {
-      upstreamReq.write(body);
-    }
-    upstreamReq.end();
-  });
+  await handleProxyRequestCore(clientReq, clientRes, proxyRequestContext());
 }
 
 async function handleDashboardRequest(req, res) {
@@ -841,7 +218,7 @@ async function handleDashboardAPI(req, res, url) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/config") {
-    const configuredCommandCodeKeys = commandCodeApiKeyEntries();
+    const configuredCommandCodeKeys = resolveCommandCodeApiKeyEntries({ env: process.env, savedKeys: savedCommandCodeApiKeys(), authPath: COMMANDCODE_AUTH_PATH });
     const commandCodeKeyCount = configuredCommandCodeKeys.length;
     const savedCommandCodeKeys = savedCommandCodeApiKeys();
     sendJSON(res, 200, {
@@ -875,7 +252,7 @@ async function handleDashboardAPI(req, res, url) {
     const keys = parseCommandCodeApiKeys(input);
     settings.commandCodeApiKeys = keys;
     saveSettings();
-    commandCodeApiKeyIndex = 0;
+    commandCodeApiKeyRotator.reset();
     sendJSON(res, 200, {
       count: keys.length,
       keys: keys.map(maskApiKey)
@@ -991,14 +368,6 @@ function statusPayload() {
   };
 }
 
-function sendJSON(res, statusCode, payload) {
-  res.writeHead(statusCode, {
-    "content-type": "application/json; charset=utf-8",
-    "cache-control": "no-store"
-  });
-  res.end(JSON.stringify(payload));
-}
-
 async function readJSONRequest(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -1017,98 +386,6 @@ function contentTypeFor(filePath) {
     case ".ico": return "image/x-icon";
     default: return "application/octet-stream";
   }
-}
-
-function rewriteClaudeThinkingBetas(headers, parsedBody) {
-  if (!parsedBody || !isClaudeModel(parsedBody.model) || !hasEnabledThinking(parsedBody)) {
-    return headers;
-  }
-
-  const betaHeaderName = findHeaderName(headers, "anthropic-beta") || "anthropic-beta";
-  const existing = String(headers[betaHeaderName] || "");
-  const betas = existing
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .filter((value) => value.toLowerCase() !== CLAUDE_REDACTED_THINKING_BETA);
-
-  for (const beta of CLAUDE_VISIBLE_THINKING_BETAS) {
-    if (!betas.some((value) => value.toLowerCase() === beta.toLowerCase())) {
-      betas.push(beta);
-    }
-  }
-
-  headers[betaHeaderName] = betas.join(",");
-  return headers;
-}
-
-function rewriteGeminiResponsesPath(requestPath, parsedBody) {
-  if (!parsedBody || !isGeminiOAuthCodeAssistModel(parsedBody.model)) {
-    return requestPath;
-  }
-
-  const [pathname, query = ""] = requestPath.split("?", 2);
-  if (pathname !== "/v1/responses" && pathname !== "/api/v1/responses") {
-    return requestPath;
-  }
-
-  return `/v1/chat/completions${query ? `?${query}` : ""}`;
-}
-
-function processOpenAIFastMode(requestPath, body, parsedBody) {
-  if (!isResponsesAPIPath(requestPath) || !parsedBody || parsedBody.service_tier !== undefined) {
-    return { changed: false };
-  }
-
-  const model = String(parsedBody.model || "");
-  const enabled = (model === "gpt-5.4" && envFlag("DROIDPROXY_GPT54_FAST_MODE"))
-    || (model === "gpt-5.5" && envFlag("DROIDPROXY_GPT55_FAST_MODE"));
-
-  if (!enabled) {
-    return { changed: false };
-  }
-
-  const source = body.toString("utf8");
-  const inserted = injectTopLevelJSONField(source, `"service_tier":"priority"`);
-  if (!inserted) {
-    return { changed: false };
-  }
-
-  return {
-    changed: true,
-    body: inserted,
-    parsedBody: { ...parsedBody, service_tier: "priority" }
-  };
-}
-
-function isResponsesAPIPath(requestPath) {
-  const pathname = String(requestPath || "").split("?", 1)[0];
-  return pathname === "/v1/responses" || pathname === "/api/v1/responses";
-}
-
-function injectTopLevelJSONField(source, fieldSource) {
-  const openIndex = source.indexOf("{");
-  if (openIndex < 0) return null;
-
-  let i = openIndex + 1;
-  while (i < source.length && /\s/.test(source[i])) i += 1;
-
-  const needsComma = source[i] !== "}";
-  return `${source.slice(0, i)}${fieldSource}${needsComma ? "," : ""}${source.slice(i)}`;
-}
-
-function logRequestReasoning(parsedBody) {
-  if (!parsedBody || typeof parsedBody !== "object") return;
-
-  const fields = {};
-  for (const key of ["reasoning", "reasoning_effort", "thinking", "output_config", "service_tier", "generationConfig"]) {
-    if (parsedBody[key] !== undefined) fields[key] = parsedBody[key];
-  }
-
-  const model = parsedBody.model || "unknown";
-  const summary = Object.keys(fields).map((key) => `${key}=${JSON.stringify(fields[key])}`).join(" ");
-  const line = `REQUEST REASONING: model=${model}${summary ? ` ${summary}` : ""}`;
-  appendDebugLog(line);
 }
 
 async function login(provider) {
@@ -1212,32 +489,6 @@ async function fetchModels() {
     timeoutMs: 5000
   });
   return Array.isArray(payload.data) ? payload.data : commandCodeOpenAIModels();
-}
-
-function requestJSON({ host, port, path: requestPath, timeoutMs }) {
-  return new Promise((resolve, reject) => {
-    const req = http.request({ host, port, path: requestPath, method: "GET", timeout: timeoutMs }, (res) => {
-      const chunks = [];
-      res.on("data", (chunk) => chunks.push(chunk));
-      res.on("end", () => {
-        const text = Buffer.concat(chunks).toString("utf8");
-        if ((res.statusCode || 500) >= 400) {
-          reject(new Error(`HTTP ${res.statusCode}: ${text.slice(0, 200)}`));
-          return;
-        }
-        try {
-          resolve(JSON.parse(text));
-        } catch (error) {
-          reject(error);
-        }
-      });
-    });
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy(new Error("Request timed out"));
-    });
-    req.end();
-  });
 }
 
 function openPath(targetPath) {
@@ -1688,110 +939,8 @@ function appendDebugLog(line) {
   }
 }
 
-function parseJSONBody(body) {
-  if (!body || body.length === 0) return null;
-  try {
-    return JSON.parse(body.toString("utf8"));
-  } catch {
-    return null;
-  }
-}
-
-function isModelsPath(requestPath) {
-  const pathname = String(requestPath || "").split("?", 1)[0];
-  return pathname === "/v1/models" || pathname === "/api/v1/models";
-}
-
-function isChatCompletionsPath(requestPath) {
-  const pathname = String(requestPath || "").split("?", 1)[0];
-  return pathname === "/v1/chat/completions" || pathname === "/api/v1/chat/completions";
-}
-
-function isCommandCodeModel(model) {
-  const value = String(model || "").toLowerCase();
-  return value.startsWith("commandcode:") || value.startsWith("cmc:");
-}
-
-function commandCodeUpstreamModel(model) {
-  const value = String(model || "");
-  if (value.toLowerCase().startsWith("commandcode:")) return value.slice("commandcode:".length);
-  if (value.toLowerCase().startsWith("cmc:")) return value.slice("cmc:".length);
-  return value;
-}
-
-function commandCodeOpenAIModels() {
-  const now = Math.floor(Date.now() / 1000);
-  return COMMANDCODE_MODELS.map((model) => ({
-    id: `commandcode:${model.id}`,
-    object: "model",
-    created: now,
-    owned_by: "commandcode"
-  }));
-}
-
-function commandCodeSlug(id) {
-  return String(id || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function commandCodeApiKeys() {
-  return commandCodeApiKeyEntries().map((entry) => entry.apiKey);
-}
-
-function commandCodeApiKeyEntries() {
-  const entries = [];
-  addCommandCodeApiKeyEntries(entries, process.env.DROIDPROXY_COMMANDCODE_API_KEYS, "Environment");
-  addCommandCodeApiKeyEntries(entries, process.env.COMMANDCODE_API_KEYS, "Environment");
-  addCommandCodeApiKeyEntries(entries, process.env.DROIDPROXY_COMMANDCODE_API_KEY, "Environment");
-  addCommandCodeApiKeyEntries(entries, process.env.COMMANDCODE_API_KEY, "Environment");
-  for (const apiKey of savedCommandCodeApiKeys()) addCommandCodeApiKeyEntries(entries, apiKey, "Dashboard");
-
-  try {
-    const auth = JSON.parse(fs.readFileSync(COMMANDCODE_AUTH_PATH, "utf8"));
-    if (Array.isArray(auth?.apiKeys)) {
-      for (const apiKey of auth.apiKeys) addCommandCodeApiKeyEntries(entries, apiKey, "CommandCode auth");
-    }
-    addCommandCodeApiKeyEntries(entries, auth?.apiKey, "CommandCode auth");
-  } catch {
-    // Missing auth file is fine when other key sources are configured.
-  }
-
-  const unique = new Map();
-  for (const entry of entries) {
-    if (!unique.has(entry.apiKey)) unique.set(entry.apiKey, entry);
-  }
-  return [...unique.values()];
-}
-
 function savedCommandCodeApiKeys() {
   return Array.isArray(settings.commandCodeApiKeys) ? settings.commandCodeApiKeys : [];
-}
-
-function addCommandCodeApiKeyEntries(entries, value, source) {
-  for (const apiKey of parseCommandCodeApiKeys(value)) {
-    entries.push({ apiKey, source });
-  }
-}
-
-function hasEnabledThinking(parsedBody) {
-  const type = parsedBody && parsedBody.thinking && parsedBody.thinking.type;
-  return ["enabled", "adaptive", "auto"].includes(String(type || "").toLowerCase());
-}
-
-function isClaudeModel(model) {
-  const value = String(model || "");
-  return value.startsWith("claude-") || value.startsWith("gemini-claude-");
-}
-
-function isGeminiOAuthCodeAssistModel(model) {
-  const value = String(model || "");
-  return value.startsWith("gemini-") && value.endsWith("-preview");
-}
-
-function findHeaderName(headers, targetLower) {
-  return Object.keys(headers).find((name) => name.toLowerCase() === targetLower);
 }
 
 function parsePort(value, fallback) {
