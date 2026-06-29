@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { ManagementRequest, ManagementResponse } from "@/management/types";
 import type {
   Account,
   ConfigPayload,
@@ -33,6 +34,7 @@ export const droidproxy = {
     restart: () => invoke<void>("supervisor_restart")
   },
   management: {
+    request: (req: ManagementRequest) => invoke<ManagementResponse>("mgmt_request", { req }),
     openWebview: () => invoke<void>("open_management_webview")
   }
 };

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +35,7 @@ function StatusBadge({ ready }: { ready: boolean }) {
 }
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [config, setConfig] = useState<ConfigPayload | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -128,7 +130,7 @@ export function DashboardPage() {
   }
 
   function openManagement() {
-    void droidproxy.management.openWebview().catch((error) => toast.error(String(error)));
+    navigate("/management");
   }
 
   return (
@@ -199,7 +201,7 @@ export function DashboardPage() {
           <CardHeader className="flex-row items-center justify-between">
             <div>
               <CardTitle>Management Center</CardTitle>
-              <CardDescription>In-app quota via embedded webview (Beta)</CardDescription>
+              <CardDescription>In-app quota via IPC adapter (Rust mgmt_request)</CardDescription>
             </div>
             <Button size="sm" onClick={openManagement}>
               Open quota UI

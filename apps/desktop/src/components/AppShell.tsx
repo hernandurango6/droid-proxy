@@ -1,7 +1,9 @@
 import { BarChart3, LayoutDashboard, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { droidproxy } from "@/lib/tauri";
 
@@ -12,6 +14,9 @@ interface AppShellProps {
 }
 
 export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
+  const location = useLocation();
+  const onHome = location.pathname === "/";
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b bg-background/90 backdrop-blur">
@@ -54,22 +59,27 @@ export function AppShell({ endpoint, onRefresh, children }: AppShellProps) {
         </div>
         <Separator />
         <nav className="mx-auto flex max-w-7xl gap-2 px-4 py-2">
-          <Button variant="secondary" size="sm">
+          <Link
+            to="/"
+            className={cn(
+              buttonVariants({ variant: onHome ? "secondary" : "outline", size: "sm" })
+            )}
+          >
             <LayoutDashboard className="size-4" />
             Home
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              void droidproxy.management.openWebview().catch((error) => {
-                toast.error(String(error));
-              });
-            }}
+          </Link>
+          <Link
+            to="/management"
+            className={cn(
+              buttonVariants({
+                variant: location.pathname.startsWith("/management") ? "secondary" : "outline",
+                size: "sm"
+              })
+            )}
           >
             <BarChart3 className="size-4" />
-            Quota (Management)
-          </Button>
+            Quota
+          </Link>
         </nav>
       </header>
       <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>

@@ -14,5 +14,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.management-ui.ts"],
+  "exclude": ["vendor/**"]
 }
