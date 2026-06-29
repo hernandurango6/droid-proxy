@@ -32,6 +32,12 @@ pub struct QuotaAlertThresholds {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DesktopSettings {
+    #[serde(default)]
+    pub auto_start: bool,
+    #[serde(default = "default_true")]
+    pub minimize_to_tray: bool,
+    #[serde(default)]
+    pub allow_lan_access: bool,
     #[serde(default = "default_poll_interval")]
     pub quota_poll_interval_sec: u32,
     #[serde(default)]
@@ -70,11 +76,22 @@ impl Default for QuotaAlertThresholds {
 impl Default for DesktopSettings {
     fn default() -> Self {
         Self {
+            auto_start: false,
+            minimize_to_tray: default_true(),
+            allow_lan_access: false,
             quota_poll_interval_sec: default_poll_interval(),
             quota_alert_thresholds: QuotaAlertThresholds::default(),
             quota_notifications_enabled: default_true(),
             quota_alert_dedup: HashMap::new(),
         }
+    }
+}
+
+pub fn proxy_bind_host(allow_lan_access: bool) -> &'static str {
+    if allow_lan_access {
+        "0.0.0.0"
+    } else {
+        "127.0.0.1"
     }
 }
 
@@ -120,6 +137,15 @@ pub fn save_desktop_settings(settings: &DesktopSettings) -> Result<(), SettingsE
         )))
     })?;
 
+    object.insert("autoStart".to_string(), Value::Bool(settings.auto_start));
+    object.insert(
+        "minimizeToTray".to_string(),
+        Value::Bool(settings.minimize_to_tray),
+    );
+    object.insert(
+        "allowLanAccess".to_string(),
+        Value::Bool(settings.allow_lan_access),
+    );
     object.insert(
         "quotaPollIntervalSec".to_string(),
         json_number(settings.quota_poll_interval_sec),
@@ -148,6 +174,15 @@ pub fn save_desktop_settings(settings: &DesktopSettings) -> Result<(), SettingsE
 
 fn desktop_settings_from_value(value: &Value) -> DesktopSettings {
     let mut settings = DesktopSettings::default();
+    if let Some(enabled) = value.get("autoStart").and_then(|v| v.as_bool()) {
+        settings.auto_start = enabled;
+    }
+    if let Some(enabled) = value.get("minimizeToTray").and_then(|v| v.as_bool()) {
+        settings.minimize_to_tray = enabled;
+    }
+    if let Some(enabled) = value.get("allowLanAccess").and_then(|v| v.as_bool()) {
+        settings.allow_lan_access = enabled;
+    }
     if let Some(interval) = value.get("quotaPollIntervalSec").and_then(|v| v.as_u64()) {
         settings.quota_poll_interval_sec = interval.clamp(30, 300) as u32;
     }
@@ -180,11 +215,26 @@ pub fn mask_secret_key(key: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::mask_secret_key;
+    use super::{desktop_settings_from_value, mask_secret_key, proxy_bind_host};
+    use serde_json::json;
 
     #[test]
     fn masks_long_keys() {
         let masked = mask_secret_key("abcdefghijklmnopqrstuvwxyz");
         assert_eq!(masked, "abcd...wxyz");
+    }
+
+    #[test]
+    fn parses_desktop_behavior_defaults() {
+        let settings = desktop_settings_from_value(&json!({}));
+        assert!(!settings.auto_start);
+        assert!(settings.minimize_to_tray);
+        assert!(!settings.allow_lan_access);
+    }
+
+    #[test]
+    fn proxy_bind_host_follows_lan_setting() {
+        assert_eq!(proxy_bind_host(false), "127.0.0.1");
+        assert_eq!(proxy_bind_host(true), "0.0.0.0");
     }
 }

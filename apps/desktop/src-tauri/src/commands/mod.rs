@@ -1,13 +1,15 @@
+pub mod desktop_settings;
 pub mod lab;
 pub mod mgmt;
 pub mod quota;
 
+use desktop_settings::DesktopSettingsPayload;
 use lab::LabOpenPathRequest;
 use mgmt::{ManagementRequest, ManagementResponse};
 use quota::QuotaSettingsPayload;
 use serde_json::Value;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::supervisor::SupervisorState;
 
@@ -86,5 +88,19 @@ pub async fn lab_save_quota_settings(
     settings: QuotaSettingsPayload,
 ) -> Result<QuotaSettingsPayload, String> {
     quota::lab_save_quota_settings(settings).await
+}
+
+#[tauri::command]
+pub async fn lab_desktop_settings(app: AppHandle) -> Result<DesktopSettingsPayload, String> {
+    desktop_settings::lab_desktop_settings(app).await
+}
+
+#[tauri::command]
+pub async fn lab_save_desktop_settings(
+    app: AppHandle,
+    settings: DesktopSettingsPayload,
+    supervisor: State<'_, Arc<SupervisorState>>,
+) -> Result<DesktopSettingsPayload, String> {
+    desktop_settings::lab_save_desktop_settings(app, settings, Arc::clone(&*supervisor)).await
 }
 

@@ -6,6 +6,7 @@ import type {
   FactoryModelsStatus,
   LoginProvider,
   ModelEntry,
+  DesktopSettings,
   QuotaSettings,
   StatusPayload
 } from "./types";
@@ -32,7 +33,10 @@ export const droidproxy = {
       }),
     quotaSettings: () => invoke<QuotaSettings>("lab_quota_settings"),
     saveQuotaSettings: (settings: QuotaSettings) =>
-      invoke<QuotaSettings>("lab_save_quota_settings", { settings })
+      invoke<QuotaSettings>("lab_save_quota_settings", { settings }),
+    desktopSettings: () => invoke<DesktopSettings>("lab_desktop_settings"),
+    saveDesktopSettings: (settings: DesktopSettings) =>
+      invoke<DesktopSettings>("lab_save_desktop_settings", { settings })
   },
   supervisor: {
     restart: () => invoke<void>("supervisor_restart")
