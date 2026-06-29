@@ -2,7 +2,7 @@
 node_modules/
 
 # Build outputs
-dist/
+**/dist/
 build/
 out/
 target/
@@ -35,6 +35,9 @@ Desktop.ini
 
 # Design review artifacts (ephemeral)
 docs/.design-*
+
+# Local terminal session logs (Cursor harness)
+terminals/
 
 # User-local runtime (never commit)
 *.bak
