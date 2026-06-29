@@ -5,7 +5,7 @@ use lab::LabOpenPathRequest;
 use mgmt::{ManagementRequest, ManagementResponse};
 use serde_json::Value;
 use std::sync::Arc;
-use tauri::State;
+use tauri::{AppHandle, State};
 
 use crate::supervisor::SupervisorState;
 
@@ -72,4 +72,9 @@ pub async fn mgmt_request(req: ManagementRequest) -> Result<ManagementResponse, 
 #[tauri::command]
 pub async fn supervisor_restart(state: State<'_, Arc<SupervisorState>>) -> Result<(), String> {
     state.restart().await
+}
+
+#[tauri::command]
+pub async fn open_management_webview(app: AppHandle) -> Result<(), String> {
+    crate::management_webview::open_management_webview(&app)
 }

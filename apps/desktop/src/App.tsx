@@ -1,20 +1,11 @@
-import { ToastProvider, useToast } from "./hooks/useToast";
-import { DashboardPage } from "./pages/DashboardPage";
-
-function Toast() {
-  const { message, visible } = useToast();
-  return (
-    <div id="toast" role="status" className={visible ? "show" : ""}>
-      {message}
-    </div>
-  );
-}
+import { DashboardPage } from "@/pages/DashboardPage";
+import { Toaster } from "@/components/ui/sonner";
 
 export function App() {
   return (
-    <ToastProvider>
+    <>
       <DashboardPage />
-      <Toast />
-    </ToastProvider>
+      <Toaster richColors closeButton position="bottom-right" />
+    </>
   );
 }

@@ -31,5 +31,8 @@ export const droidproxy = {
   },
   supervisor: {
     restart: () => invoke<void>("supervisor_restart")
+  },
+  management: {
+    openWebview: () => invoke<void>("open_management_webview")
   }
 };
