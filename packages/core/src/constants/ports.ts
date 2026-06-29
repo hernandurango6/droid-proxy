@@ -35,7 +35,7 @@ export function resolveBackendPort(env: NodeJS.ProcessEnv = process.env): number
 }
 
 export function resolveDashboardHost(env: NodeJS.ProcessEnv = process.env): string {
-  return env[ENV_DASHBOARD_HOST] || "0.0.0.0";
+  return env[ENV_DASHBOARD_HOST] || "127.0.0.1";
 }
 
 export function resolveDashboardPort(env: NodeJS.ProcessEnv = process.env): number {

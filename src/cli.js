@@ -48,7 +48,7 @@ const FRONTEND_HOST = process.env.DROIDPROXY_HOST || "0.0.0.0";
 const FRONTEND_PORT = parsePort(process.env.DROIDPROXY_PORT, 8417);
 const BACKEND_HOST = "127.0.0.1";
 const BACKEND_PORT = parsePort(process.env.DROIDPROXY_BACKEND_PORT, 8418);
-const DASHBOARD_HOST = process.env.DROIDPROXY_DASHBOARD_HOST || "0.0.0.0";
+const DASHBOARD_HOST = process.env.DROIDPROXY_DASHBOARD_HOST || "127.0.0.1";
 const DASHBOARD_PORT = parsePort(process.env.DROIDPROXY_DASHBOARD_PORT, 8419);
 const PUBLIC_HOST = process.env.DROIDPROXY_PUBLIC_HOST || detectPublicHost();
 const DASHBOARD_DIR = path.join(ROOT_DIR, "dashboard");
@@ -168,6 +168,9 @@ function startDashboard() {
   dashboardServer.listen(DASHBOARD_PORT, DASHBOARD_HOST, () => {
     pushLog(`Dashboard listening on http://${DASHBOARD_HOST}:${DASHBOARD_PORT}`);
     pushLog(`Open dashboard at ${dashboardUrl()}`);
+    pushLog(
+      "WARNING: The :8419 browser dashboard is deprecated. Use the DroidProxy desktop app for the maintained UI."
+    );
   });
 }
 

@@ -11,6 +11,7 @@ import {
   parsePort,
   resolveBackendPort,
   resolveControlPort,
+  resolveDashboardHost,
   resolveDashboardPort,
   resolveFrontendHost,
   resolveFrontendPort,
@@ -36,6 +37,7 @@ test("env resolvers honor DROIDPROXY_* variables", () => {
     DROIDPROXY_HOST: "127.0.0.1",
     DROIDPROXY_PORT: "9001",
     DROIDPROXY_BACKEND_PORT: "9002",
+    DROIDPROXY_DASHBOARD_HOST: "0.0.0.0",
     DROIDPROXY_DASHBOARD_PORT: "9003",
     DROIDPROXY_CONTROL_PORT: "9004",
     DROIDPROXY_PUBLIC_HOST: "192.168.1.10"
@@ -44,9 +46,14 @@ test("env resolvers honor DROIDPROXY_* variables", () => {
   assert.equal(resolveFrontendHost(env), "127.0.0.1");
   assert.equal(resolveFrontendPort(env), 9001);
   assert.equal(resolveBackendPort(env), 9002);
+  assert.equal(resolveDashboardHost(env), "0.0.0.0");
   assert.equal(resolveDashboardPort(env), 9003);
   assert.equal(resolveControlPort(env), 9004);
   assert.equal(resolvePublicHost(env), "192.168.1.10");
+});
+
+test("dashboard host defaults to loopback", () => {
+  assert.equal(resolveDashboardHost({}), "127.0.0.1");
 });
 
 test("management and proxy URLs use expected hosts", () => {
