@@ -12,3 +12,4 @@ export * from "./proxy";
 export * from "./commandcode";
 export * from "./factory";
 export * from "./accounts";
+export * from "./api";

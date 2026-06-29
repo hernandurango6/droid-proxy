@@ -7,18 +7,12 @@ const {
   loadSettings,
   saveSettings: persistSettings,
   writeConfig: writeConfigFile,
-  parseCommandCodeApiKeys,
-  maskApiKey,
-  envFlag,
-  COMMANDCODE_MODELS,
   DEFAULT_COMMANDCODE_API_URL,
   getCommandCodeAuthPath,
   handleProxyRequest: handleProxyRequestCore,
   sendJSON,
   requestJSON,
   commandCodeOpenAIModels,
-  commandCodeSlug,
-  resolveCommandCodeApiKeyEntries,
   CommandCodeApiKeyRotator,
   LOGIN_FLAGS,
   getFactorySettingsPath,
@@ -31,7 +25,8 @@ const {
   getAccounts,
   formatAccountsForCli,
   runLogin: runLoginCore,
-  runLoginDetached: runLoginDetachedCore
+  runLoginDetached: runLoginDetachedCore,
+  handleDashboardRequest: handleDashboardRequestCore
 } = require("@droidproxy/core");
 const {
   startBackendProcess,
@@ -159,7 +154,12 @@ function startFrontendProxy() {
 
 function startDashboard() {
   dashboardServer = http.createServer((req, res) => {
-    handleDashboardRequest(req, res).catch((error) => {
+    handleDashboardRequestCore(req, res, {
+      dashboardDir: DASHBOARD_DIR,
+      dashboardHost: DASHBOARD_HOST,
+      dashboardPort: DASHBOARD_PORT,
+      apiContext: dashboardApiContext()
+    }).catch((error) => {
       pushLog(error.stack || error.message);
       sendJSON(res, 500, { error: "dashboard_error", message: error.message });
     });
@@ -191,155 +191,30 @@ async function handleProxyRequest(clientReq, clientRes) {
   await handleProxyRequestCore(clientReq, clientRes, proxyRequestContext());
 }
 
-async function handleDashboardRequest(req, res) {
-  const url = new URL(req.url || "/", `http://${requestHost(DASHBOARD_HOST)}:${DASHBOARD_PORT}`);
-
-  if (url.pathname.startsWith("/api/")) {
-    await handleDashboardAPI(req, res, url);
-    return;
-  }
-
-  serveDashboardAsset(url.pathname, res);
-}
-
-async function handleDashboardAPI(req, res, url) {
-  if (req.method === "GET" && url.pathname === "/api/status") {
-    sendJSON(res, 200, statusPayload());
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/accounts") {
-    sendJSON(res, 200, { accounts: getAccounts() });
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/logs") {
-    sendJSON(res, 200, { logs: appLogs });
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/config") {
-    const configuredCommandCodeKeys = resolveCommandCodeApiKeyEntries({ env: process.env, savedKeys: savedCommandCodeApiKeys(), authPath: COMMANDCODE_AUTH_PATH });
-    const commandCodeKeyCount = configuredCommandCodeKeys.length;
-    const savedCommandCodeKeys = savedCommandCodeApiKeys();
-    sendJSON(res, 200, {
-      configPath: CONFIG_PATH,
-      authDir: AUTH_DIR,
-      commandCodeAuthPath: COMMANDCODE_AUTH_PATH,
-      commandCodeAuth: commandCodeKeyCount > 0,
-      commandCodeApiKeyCount: commandCodeKeyCount,
-      configuredCommandCodeApiKeys: configuredCommandCodeKeys.map((entry) => ({
-        key: maskApiKey(entry.apiKey),
-        source: entry.source
-      })),
-      savedCommandCodeApiKeyCount: savedCommandCodeKeys.length,
-      savedCommandCodeApiKeys: savedCommandCodeKeys.map(maskApiKey),
-      commandCodeUrl: COMMANDCODE_API_URL,
-      factorySettingsPath: FACTORY_SETTINGS_PATH,
-      managementUrl: MANAGEMENT_URL,
-      managementSecretKey: settings.managementSecretKey,
-      debug: envFlag("DROIDPROXY_DEBUG"),
-      gpt54FastMode: envFlag("DROIDPROXY_GPT54_FAST_MODE"),
-      gpt55FastMode: envFlag("DROIDPROXY_GPT55_FAST_MODE"),
-      requestRetry: process.env.DROIDPROXY_REQUEST_RETRY || "3",
-      requestTimeout: process.env.DROIDPROXY_REQUEST_TIMEOUT || "10m"
-    });
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/commandcode-keys") {
-    const body = await readJSONRequest(req);
-    const input = typeof body.keys === "string" ? body.keys : "";
-    const keys = parseCommandCodeApiKeys(input);
-    settings.commandCodeApiKeys = keys;
-    saveSettings();
-    commandCodeApiKeyRotator.reset();
-    sendJSON(res, 200, {
-      count: keys.length,
-      keys: keys.map(maskApiKey)
-    });
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/factory-models") {
-    sendJSON(res, 200, factoryModelsStatus());
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/factory-models/selection") {
-    const body = await readJSONRequest(req);
-    const ids = Array.isArray(body.ids) ? body.ids : null;
-    if (!ids) {
-      sendJSON(res, 400, { error: "invalid_selection" });
-      return;
-    }
-    saveFactoryModelSelection(ids);
-    sendJSON(res, 200, factoryModelsStatus());
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/open-management") {
-    openPath(MANAGEMENT_URL);
-    sendJSON(res, 202, { opened: true, url: MANAGEMENT_URL });
-    return;
-  }
-
-  if (req.method === "GET" && url.pathname === "/api/models") {
-    try {
-      const models = await fetchModels();
-      sendJSON(res, 200, { models });
-    } catch (error) {
-      sendJSON(res, 502, { error: "models_unavailable", message: error.message, models: [] });
-    }
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/login") {
-    const body = await readJSONRequest(req);
-    const provider = body.provider;
-    if (!provider || !LOGIN_FLAGS[provider]) {
-      sendJSON(res, 400, { error: "invalid_provider", providers: Object.keys(LOGIN_FLAGS) });
-      return;
-    }
-    runLoginDetached(provider);
-    sendJSON(res, 202, { started: true, provider });
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/open-auth-dir") {
-    openPath(AUTH_DIR);
-    sendJSON(res, 202, { opened: true, path: AUTH_DIR });
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/open-config") {
-    writeConfig();
-    openPath(CONFIG_PATH);
-    sendJSON(res, 202, { opened: true, path: CONFIG_PATH });
-    return;
-  }
-
-  if (req.method === "POST" && url.pathname === "/api/apply-factory-models") {
-    const result = applyFactoryCustomModels();
-    sendJSON(res, 200, result);
-    return;
-  }
-
-  sendJSON(res, 404, { error: "not_found" });
-}
-
-function serveDashboardAsset(pathname, res) {
-  const assetName = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
-  const assetPath = path.resolve(DASHBOARD_DIR, assetName);
-
-  if (!assetPath.startsWith(DASHBOARD_DIR) || !fs.existsSync(assetPath) || fs.statSync(assetPath).isDirectory()) {
-    res.writeHead(404, { "content-type": "text/plain; charset=utf-8" });
-    res.end("Not found");
-    return;
-  }
-
-  res.writeHead(200, { "content-type": contentTypeFor(assetPath) });
-  fs.createReadStream(assetPath).pipe(res);
+function dashboardApiContext() {
+  return {
+    authDir: AUTH_DIR,
+    configPath: CONFIG_PATH,
+    commandCodeAuthPath: COMMANDCODE_AUTH_PATH,
+    commandCodeApiUrl: COMMANDCODE_API_URL,
+    factorySettingsPath: FACTORY_SETTINGS_PATH,
+    managementUrl: MANAGEMENT_URL,
+    settings,
+    env: process.env,
+    appLogs,
+    commandCodeApiKeyRotator,
+    getSavedCommandCodeApiKeys: savedCommandCodeApiKeys,
+    saveSettings,
+    statusPayload,
+    getAccounts: () => getAccounts(AUTH_DIR),
+    factoryModelsStatus,
+    saveFactoryModelSelection,
+    applyFactoryCustomModels,
+    fetchModels,
+    runLoginDetached,
+    openPath,
+    writeConfig
+  };
 }
 
 function statusPayload() {
@@ -367,26 +242,6 @@ function statusPayload() {
     configPath: CONFIG_PATH,
     authDir: AUTH_DIR
   };
-}
-
-async function readJSONRequest(req) {
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  const body = Buffer.concat(chunks).toString("utf8");
-  if (!body) return {};
-  return JSON.parse(body);
-}
-
-function contentTypeFor(filePath) {
-  switch (path.extname(filePath).toLowerCase()) {
-    case ".html": return "text/html; charset=utf-8";
-    case ".css": return "text/css; charset=utf-8";
-    case ".js": return "text/javascript; charset=utf-8";
-    case ".json": return "application/json; charset=utf-8";
-    case ".png": return "image/png";
-    case ".ico": return "image/x-icon";
-    default: return "application/octet-stream";
-  }
 }
 
 async function login(provider) {
