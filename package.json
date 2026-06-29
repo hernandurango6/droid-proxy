@@ -8,15 +8,16 @@
   "scripts": {
     "build": "pnpm -r build",
     "test": "pnpm -r test",
-    "typecheck": "pnpm --filter @droidproxy/core build && pnpm -r typecheck",
+    "typecheck": "pnpm --filter @droidproxy/core build && pnpm --filter @droidproxy/service build && pnpm -r typecheck",
     "check": "node --check src/cli.js && node --check dashboard/app.js",
-    "prestart": "pnpm --filter @droidproxy/core build",
-    "prelogin:claude": "pnpm --filter @droidproxy/core build",
-    "prelogin:codex": "pnpm --filter @droidproxy/core build",
-    "prelogin:kimi": "pnpm --filter @droidproxy/core build",
-    "prelogin:antigravity": "pnpm --filter @droidproxy/core build",
-    "prelogin:gemini": "pnpm --filter @droidproxy/core build",
-    "prelogin:xai": "pnpm --filter @droidproxy/core build",
+    "build:runtime": "pnpm --filter @droidproxy/core build && pnpm --filter @droidproxy/service build",
+    "prestart": "pnpm run build:runtime",
+    "prelogin:claude": "pnpm run build:runtime",
+    "prelogin:codex": "pnpm run build:runtime",
+    "prelogin:kimi": "pnpm run build:runtime",
+    "prelogin:antigravity": "pnpm run build:runtime",
+    "prelogin:gemini": "pnpm run build:runtime",
+    "prelogin:xai": "pnpm run build:runtime",
     "start": "node src/cli.js start",
     "login:claude": "node src/cli.js login claude",
     "login:codex": "node src/cli.js login codex",
@@ -34,7 +35,8 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@droidproxy/core": "workspace:*"
+    "@droidproxy/core": "workspace:*",
+    "@droidproxy/service": "workspace:*"
   },
   "engines": {
     "node": ">=18",

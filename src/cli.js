@@ -11,6 +11,14 @@ const {
   maskApiKey,
   envFlag
 } = require("@droidproxy/core");
+const {
+  startBackendProcess,
+  stopBackendProcess,
+  killOrphanedBackend: killOrphanedBackendProcess,
+  resolveCliBinaryPath,
+  probeBackendVersion,
+  assertMinimumVersion
+} = require("@droidproxy/service");
 
 const ROOT_DIR = path.resolve(__dirname, "..");
 const AUTH_DIR = path.join(os.homedir(), ".cli-proxy-api");
@@ -128,7 +136,7 @@ async function main() {
 
 async function start() {
   writeConfig();
-  await killOrphanedBackend();
+  await killOrphanedBackendProcess({ onLog: pushLog });
   startBackend();
   startFrontendProxy();
   startDashboard();
@@ -138,25 +146,31 @@ async function start() {
 }
 
 function startBackend() {
-  const binary = cliBinaryPath();
-  if (!fs.existsSync(binary)) {
-    throw new Error(`Missing cli-proxy-api.exe at ${binary}`);
-  }
-
-  backendProcess = spawn(binary, ["--config", CONFIG_PATH], {
-    cwd: path.dirname(binary),
-    windowsHide: true,
+  const handle = startBackendProcess({
+    rootDir: ROOT_DIR,
+    configPath: CONFIG_PATH,
+    backendHost: BACKEND_HOST,
+    backendPort: BACKEND_PORT,
     env: process.env,
-    stdio: ["ignore", "pipe", "pipe"]
+    onLog: pushLog
   });
 
-  pushLog(`CLIProxyAPI listening on http://${BACKEND_HOST}:${BACKEND_PORT} (pid ${backendProcess.pid})`);
-  backendProcess.stdout.on("data", (chunk) => logBackend(chunk));
-  backendProcess.stderr.on("data", (chunk) => logBackend(chunk));
+  backendProcess = handle.process;
   backendProcess.on("exit", (code) => {
     pushLog(`CLIProxyAPI exited with code ${code}`);
     backendProcess = null;
   });
+
+  setTimeout(() => {
+    probeBackendVersion(BACKEND_PORT, BACKEND_HOST)
+      .then((result) => {
+        pushLog(result.message);
+        if (result.version) {
+          assertMinimumVersion(result.version, (message) => pushLog(`WARNING: ${message}`));
+        }
+      })
+      .catch((error) => pushLog(`Backend version probe failed: ${error.message}`));
+  }, 1500);
 }
 
 function startFrontendProxy() {
@@ -1152,7 +1166,7 @@ function runLoginDetached(provider) {
 
 function runLogin(provider, options) {
   writeConfig();
-  const binary = cliBinaryPath();
+  const binary = resolveCliBinaryPath(ROOT_DIR);
   if (!fs.existsSync(binary)) {
     throw new Error(`Missing cli-proxy-api.exe at ${binary}`);
   }
@@ -1636,21 +1650,6 @@ function saveSettings() {
   });
 }
 
-function cliBinaryPath() {
-  return path.join(ROOT_DIR, "resources", "bin", "cli-proxy-api.exe");
-}
-
-function killOrphanedBackend() {
-  if (!envFlag("DROIDPROXY_KILL_ORPHANED_BACKEND")) {
-    pushLog("Skipping global cli-proxy-api.exe cleanup in lab mode");
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve) => {
-    execFile("taskkill.exe", ["/IM", "cli-proxy-api.exe", "/F"], { windowsHide: true }, () => resolve());
-  });
-}
-
 function shutdown() {
   if (dashboardServer) {
     dashboardServer.close();
@@ -1661,7 +1660,7 @@ function shutdown() {
     frontendServer = null;
   }
   if (backendProcess) {
-    backendProcess.kill();
+    stopBackendProcess(backendProcess);
     backendProcess = null;
   }
   process.exit(0);
