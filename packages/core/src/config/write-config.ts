@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { getAuthDir, getConfigPath, getResourcesDir } from "../constants/paths";
+import { getAuthDir, getConfigPath, resolveResourcesDir } from "../constants/paths";
 import { resolveBackendPort } from "../constants/ports";
 import { envFlag } from "./env";
 
@@ -37,7 +37,7 @@ export function writeConfig(options: WriteConfigOptions): string {
   const authDir = options.authDir ?? getAuthDir();
   const configPath = options.configPath ?? getConfigPath();
   const templatePath = path.join(
-    getResourcesDir(options.rootDir),
+    resolveResourcesDir(options.rootDir, env),
     options.templateFileName ?? "config.template.yaml"
   );
 

@@ -14,6 +14,7 @@
     "desktop:dev": "pnpm --filter @droidproxy/sidecar build && pnpm --filter @droidproxy/desktop tauri:dev",
     "desktop:build": "pnpm sidecar:build && pnpm --filter @droidproxy/desktop tauri:build",
     "check": "node --check src/cli.js && node --check dashboard/app.js",
+    "verify:backend-pin": "node scripts/verify-backend-version-pin.mjs",
     "build:runtime": "pnpm --filter @droidproxy/core build && pnpm --filter @droidproxy/service build",
     "prestart": "pnpm run build:runtime",
     "prelogin:claude": "pnpm run build:runtime",

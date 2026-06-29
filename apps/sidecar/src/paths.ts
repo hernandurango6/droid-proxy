@@ -6,10 +6,19 @@ export function resolveSidecarRootDir(moduleDirname: string): string {
     return path.resolve(process.env.DROIDPROXY_ROOT);
   }
 
+  const resourceDir = process.env.TAURI_RESOURCE_DIR;
+  if (resourceDir && fs.existsSync(path.join(resourceDir, "config.template.yaml"))) {
+    return path.resolve(resourceDir);
+  }
+
   let current = path.resolve(moduleDirname);
   for (let depth = 0; depth < 6; depth += 1) {
     const binaryPath = path.join(current, "resources", "bin", "cli-proxy-api.exe");
     if (fs.existsSync(binaryPath)) {
+      return current;
+    }
+    const bundledTemplate = path.join(current, "config.template.yaml");
+    if (fs.existsSync(bundledTemplate)) {
       return current;
     }
     const parent = path.dirname(current);

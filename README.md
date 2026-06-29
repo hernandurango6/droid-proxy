@@ -26,9 +26,47 @@ droidproxy-commandcode-lab-config.yaml     # backend config generated from resou
 ## Requirements
 
 - Windows
-- Node.js 18+
+- Node.js 18+ (CLI/lab mode)
+- WebView2 runtime (desktop app — preinstalled on Windows 11)
 
-## Start
+## Desktop app (recommended)
+
+Build the Windows installer from the monorepo root:
+
+```powershell
+pnpm install
+pnpm desktop:build
+```
+
+Artifacts:
+
+```text
+apps/desktop/src-tauri/target/release/bundle/nsis/DroidProxy_0.1.0_x64-setup.exe
+```
+
+The installer bundles:
+
+- `DroidProxy.exe` — Tauri shell (tray, settings, Management UI)
+- `droidproxy-sidecar.exe` — proxy `:8417`, control API `:8420`
+- `cli-proxy-api.exe` — backend `:8418` (unchanged binary)
+
+After install, DroidProxy starts the sidecar and backend automatically. Default proxy endpoint:
+
+```text
+http://127.0.0.1:8417/v1
+```
+
+Enable **Allow LAN access** in Settings to bind the proxy on all interfaces. Enable **Start with Windows** to launch minimized to the tray (`--hidden`).
+
+CI publishes unsigned installers via the `Desktop Release` workflow (`workflow_dispatch` or `desktop-v*` tags). Authenticode signing is reserved for GA builds.
+
+Development:
+
+```powershell
+pnpm desktop:dev
+```
+
+## Start (CLI lab mode)
 
 ```powershell
 npm start

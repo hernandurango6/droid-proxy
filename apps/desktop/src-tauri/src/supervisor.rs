@@ -166,6 +166,9 @@ impl SupervisorInner {
 
 fn resolve_repo_root(app: &AppHandle) -> Result<PathBuf, String> {
     if let Ok(resource_dir) = app.path().resource_dir() {
+        if has_bundled_resource_layout(&resource_dir) {
+            return Ok(resource_dir);
+        }
         if let Some(parent) = resource_dir.parent() {
             let candidate = parent.to_path_buf();
             if has_backend_binary(&candidate) {
@@ -189,6 +192,13 @@ fn resolve_repo_root(app: &AppHandle) -> Result<PathBuf, String> {
 
 fn has_backend_binary(root: &Path) -> bool {
     root.join("resources")
+        .join("bin")
+        .join("cli-proxy-api.exe")
+        .exists()
+}
+
+fn has_bundled_resource_layout(resource_dir: &Path) -> bool {
+    resource_dir
         .join("bin")
         .join("cli-proxy-api.exe")
         .exists()

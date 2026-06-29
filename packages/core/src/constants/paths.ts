@@ -1,3 +1,4 @@
+import fs from "fs";
 import os from "os";
 import path from "path";
 
@@ -49,4 +50,16 @@ export function getResourcesDir(rootDir: string): string {
 
 export function getCliBinaryPath(rootDir: string): string {
   return path.join(getResourcesDir(rootDir), "bin", "cli-proxy-api.exe");
+}
+
+/** Resolves the directory containing config.template.yaml (repo or Tauri bundle layout). */
+export function resolveResourcesDir(rootDir: string, env: NodeJS.ProcessEnv = process.env): string {
+  const tauriDir = env.TAURI_RESOURCE_DIR;
+  if (tauriDir) {
+    return tauriDir;
+  }
+  if (fs.existsSync(path.join(rootDir, "config.template.yaml"))) {
+    return rootDir;
+  }
+  return getResourcesDir(rootDir);
 }
