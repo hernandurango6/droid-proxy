@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+out/
+target/
+
+# Tauri / Electron (future)
+apps/desktop/src-tauri/target/
+apps/desktop/dist/
+apps/sidecar/dist/
+
+# Logs and debug
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Design review artifacts (ephemeral)
+docs/.design-*
+
+# User-local runtime (never commit)
+*.bak

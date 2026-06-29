@@ -1,0 +1,27 @@
+{
+  "name": "droidproxy-commandcode-lab",
+  "version": "0.1.0",
+  "description": "Isolated DroidProxy Windows lab with experimental CommandCode routing.",
+  "main": "src/cli.js",
+  "scripts": {
+    "start": "node src/cli.js start",
+    "login:claude": "node src/cli.js login claude",
+    "login:codex": "node src/cli.js login codex",
+    "login:kimi": "node src/cli.js login kimi",
+    "login:antigravity": "node src/cli.js login antigravity",
+    "login:gemini": "node src/cli.js login gemini",
+    "login:xai": "node src/cli.js login xai",
+    "check": "node --check src/cli.js && node --check dashboard/app.js"
+  },
+  "keywords": [
+    "droidproxy",
+    "claude",
+    "codex",
+    "oauth",
+    "proxy"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

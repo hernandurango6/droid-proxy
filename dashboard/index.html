@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DroidProxy Windows</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>DroidProxy Windows</h1>
+        <p id="endpoint">Loading endpoint...</p>
+      </div>
+      <div class="top-actions">
+        <button id="copy-endpoint" type="button">Copy Endpoint</button>
+        <button id="refresh" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel status-panel">
+        <div class="panel-header">
+          <h2>Status</h2>
+          <span id="overall-status" class="pill muted">Loading</span>
+        </div>
+        <div class="status-grid">
+          <div>
+            <span class="label">Proxy</span>
+            <strong id="proxy-status">-</strong>
+            <small id="proxy-url">-</small>
+          </div>
+          <div>
+            <span class="label">Backend</span>
+            <strong id="backend-status">-</strong>
+            <small id="backend-url">-</small>
+          </div>
+          <div>
+            <span class="label">Dashboard</span>
+            <strong id="dashboard-status">-</strong>
+            <small id="dashboard-url">-</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>OAuth</h2>
+          <button id="open-auth" type="button">Open Auth Folder</button>
+        </div>
+        <div id="login-grid" class="button-grid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Management Center</h2>
+          <button id="open-management" class="primary" type="button">Open Advanced UI</button>
+        </div>
+        <dl class="config-list">
+          <div><dt>URL</dt><dd id="management-url">-</dd></div>
+          <div><dt>Key</dt><dd id="management-key">-</dd></div>
+        </dl>
+        <div class="panel-actions">
+          <button id="copy-management-url" type="button">Copy URL</button>
+          <button id="copy-management-key" type="button">Copy Key</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Accounts</h2>
+          <span id="account-count" class="pill muted">0</span>
+        </div>
+        <div id="accounts" class="list empty">No accounts found.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>CommandCode Keys</h2>
+          <span id="configured-commandcode-key-count" class="pill muted">0</span>
+        </div>
+        <form id="commandcode-key-form" class="key-form">
+          <label class="search-box">
+            <span>API keys</span>
+            <textarea id="commandcode-key-input" rows="5" spellcheck="false" placeholder="Paste one key per line or separate them with commas"></textarea>
+          </label>
+          <div class="panel-actions">
+            <button class="primary" type="submit">Save Keys</button>
+            <button id="clear-commandcode-keys" type="button">Clear</button>
+          </div>
+        </form>
+        <div id="commandcode-key-list" class="list empty">No configured keys.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Models</h2>
+          <div class="header-actions">
+            <span id="model-count" class="pill muted">0</span>
+            <button id="toggle-models" type="button" aria-expanded="false">Show</button>
+          </div>
+        </div>
+        <div id="models-body" hidden>
+          <div id="models" class="list empty">No models loaded.</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Factory Custom Models</h2>
+          <span id="factory-status" class="pill muted">Checking</span>
+        </div>
+        <p class="panel-copy">Writes DroidProxy model aliases into Factory settings and creates a timestamped backup first.</p>
+        <div class="panel-actions">
+          <button id="apply-factory-models" class="primary" type="button">Apply Models</button>
+          <button id="select-all-factory-models" type="button">Select All</button>
+          <button id="clear-factory-models" type="button">Clear</button>
+        </div>
+        <label class="search-box">
+          <span>Search models</span>
+          <input id="factory-model-search" type="search" placeholder="Claude, GPT, Gemini, Kimi...">
+        </label>
+        <dl class="config-list factory-meta">
+          <div><dt>Settings</dt><dd id="factory-settings-path">-</dd></div>
+          <div><dt>Expected</dt><dd id="factory-expected">-</dd></div>
+        </dl>
+        <div id="factory-model-selection" class="selection-list"></div>
+      </section>
+
+      <section class="panel config-panel">
+        <div class="panel-header">
+          <h2>Config</h2>
+          <button id="open-config" type="button">Open Config</button>
+        </div>
+        <dl class="config-list">
+          <div><dt>Config</dt><dd id="config-path">-</dd></div>
+          <div><dt>Auth</dt><dd id="auth-dir">-</dd></div>
+          <div><dt>Factory</dt><dd id="factory-path">-</dd></div>
+          <div><dt>Debug</dt><dd id="debug-flag">-</dd></div>
+          <div><dt>CommandCode</dt><dd id="commandcode-keys">-</dd></div>
+          <div><dt>Fast Mode</dt><dd id="fast-mode">-</dd></div>
+          <div><dt>Timeout</dt><dd id="timeout">-</dd></div>
+        </dl>
+      </section>
+
+      <section class="panel logs-panel">
+        <div class="panel-header">
+          <h2>Logs</h2>
+          <span id="log-count" class="pill muted">0</span>
+        </div>
+        <pre id="logs"></pre>
+      </section>
+    </main>
+
+    <div id="toast" role="status"></div>
+    <script src="/app.js"></script>
+  </body>
+</html>
