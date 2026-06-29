@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DroidProxy</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <h1>DroidProxy</h1>
+        <p class="subtitle">Desktop shell — services supervised by Tauri</p>
+      </header>
+      <section class="status-card">
+        <div class="status-row">
+          <span>Sidecar health</span>
+          <strong id="health-status">loading…</strong>
+        </div>
+        <div class="status-row">
+          <span>Proxy endpoint</span>
+          <code id="proxy-url">—</code>
+        </div>
+        <div class="status-row">
+          <span>Backend</span>
+          <code id="backend-url">—</code>
+        </div>
+      </section>
+      <section class="actions">
+        <button id="refresh-btn" type="button">Refresh status</button>
+        <button id="restart-btn" type="button">Restart services</button>
+      </section>
+      <pre id="status-json" class="json-panel"></pre>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
