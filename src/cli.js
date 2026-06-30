@@ -168,9 +168,6 @@ function startDashboard() {
   dashboardServer.listen(DASHBOARD_PORT, DASHBOARD_HOST, () => {
     pushLog(`Dashboard listening on http://${DASHBOARD_HOST}:${DASHBOARD_PORT}`);
     pushLog(`Open dashboard at ${dashboardUrl()}`);
-    pushLog(
-      "WARNING: The :8419 browser dashboard is deprecated. Use the DroidProxy desktop app for the maintained UI."
-    );
   });
 }
 
