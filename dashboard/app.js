@@ -33,6 +33,7 @@ const state = {
 const $ = (selector) => document.querySelector(selector);
 
 document.addEventListener("DOMContentLoaded", () => {
+  initTheme();
   renderLoginButtons();
   $("#refresh").addEventListener("click", refreshAll);
   $("#copy-endpoint").addEventListener("click", copyEndpoint);
@@ -65,6 +66,39 @@ document.addEventListener("DOMContentLoaded", () => {
   setInterval(refreshAll, 5000);
   setInterval(() => loadQuota(), QUOTA_REFRESH_MS);
 });
+
+function initTheme() {
+  const button = $("#theme-toggle");
+  if (!button) return;
+
+  const applyTheme = (dark) => {
+    if (dark) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+    button.textContent = dark ? "Light" : "Dark";
+    button.setAttribute("aria-pressed", dark ? "true" : "false");
+    button.setAttribute("aria-label", dark ? "Switch to light theme" : "Switch to dark theme");
+    try {
+      localStorage.setItem("droidproxy.theme", dark ? "dark" : "light");
+    } catch (error) {
+      /* ignore storage errors */
+    }
+  };
+
+  let dark = false;
+  try {
+    dark = localStorage.getItem("droidproxy.theme") === "dark";
+  } catch (error) {
+    /* ignore storage errors */
+  }
+
+  applyTheme(dark);
+  button.addEventListener("click", () => {
+    applyTheme(document.documentElement.getAttribute("data-theme") !== "dark");
+  });
+}
 
 function renderLoginButtons() {
   const container = $("#login-grid");

@@ -4,8 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>DroidProxy — Lab Console</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.css">
     <link rel="stylesheet" href="/styles.css">
-    <script>try{if(localStorage.getItem("droidproxy.legacyDismissed")==="1"){document.documentElement.classList.add("legacy-dismissed");}}catch(e){}</script>
+    <script>try{if(localStorage.getItem("droidproxy.legacyDismissed")==="1"){document.documentElement.classList.add("legacy-dismissed");}if(localStorage.getItem("droidproxy.theme")==="dark"){document.documentElement.setAttribute("data-theme","dark");}}catch(e){}</script>
   </head>
   <body>
     <div class="app">
@@ -13,7 +16,7 @@
         <div class="topbar-brand">
           <span class="brand-mark" aria-hidden="true"></span>
           <div class="brand-text">
-            <p class="brand-eyebrow">CLI lab console</p>
+            <p class="brand-eyebrow">Lab console</p>
             <h1>DroidProxy</h1>
           </div>
         </div>
@@ -24,6 +27,7 @@
             <code id="endpoint" class="endpoint-value">Loading endpoint…</code>
           </div>
           <div class="topbar-actions">
+            <button id="theme-toggle" type="button" class="btn btn-ghost" aria-pressed="false" aria-label="Switch to dark theme">Dark</button>
             <button id="copy-endpoint" type="button" class="btn btn-secondary">Copy endpoint</button>
             <button id="refresh" type="button" class="btn btn-primary">Refresh</button>
           </div>
@@ -275,7 +279,7 @@
           <section id="config" class="zone zone-paths">
             <div class="section-head">
               <div>
-                <p class="section-eyebrow">09 / Paths and flags</p>
+                <p class="section-eyebrow">10 / Paths and flags</p>
                 <h2>Paths and flags</h2>
                 <p class="section-lead">Local files and runtime options for this lab instance.</p>
               </div>
