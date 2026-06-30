@@ -18,13 +18,13 @@ export interface DashboardApiContext {
   saveSettings: () => void;
   statusPayload: () => Record<string, unknown>;
   getAccounts: () => Account[];
-  factoryModelsStatus: () => FactoryModelsStatus;
-  saveFactoryModelSelection: (ids: string[]) => void;
-  applyFactoryCustomModels: () => ApplyFactoryResult;
+  factoryModelsStatus: () => FactoryModelsStatus | Promise<FactoryModelsStatus>;
+  saveFactoryModelSelection: (ids: string[]) => void | Promise<void>;
+  applyFactoryCustomModels: () => ApplyFactoryResult | Promise<ApplyFactoryResult>;
   fetchModels: () => Promise<unknown[]>;
   runLoginDetached: (provider: string) => void;
   openPath: (targetPath: string) => void;
   writeConfig: () => void;
-  fetchQuotaUsage: () => Promise<Record<string, unknown>>;
-  resetCodexQuota: (accountName: string) => Promise<Record<string, unknown>>;
+  fetchQuotaUsage: () => Promise<unknown>;
+  resetCodexQuota: (accountName: string) => Promise<unknown>;
 }

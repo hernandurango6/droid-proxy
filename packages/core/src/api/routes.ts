@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { parseCommandCodeApiKeys, maskApiKey } from "../config/commandcode-keys";
 import { envFlag } from "../config/env";
+import { normalizeOpenAICompatibleProviders } from "../config/openai-compatible";
 import { LOGIN_FLAGS } from "../constants/login-flags";
 import { resolveCommandCodeApiKeyEntries } from "../commandcode/api-keys";
 import { sendJSON } from "../http/send-json";
@@ -49,6 +50,7 @@ export async function handleDashboardAPI(
       savedCommandCodeApiKeyCount: savedCommandCodeKeys.length,
       savedCommandCodeApiKeys: savedCommandCodeKeys.map(maskApiKey),
       commandCodeUrl: ctx.commandCodeApiUrl,
+      openAICompatibleProviderCount: normalizeOpenAICompatibleProviders(ctx.settings.openAICompatibleProviders).length,
       factorySettingsPath: ctx.factorySettingsPath,
       managementUrl: ctx.managementUrl,
       managementSecretKey: ctx.settings.managementSecretKey,
@@ -76,7 +78,27 @@ export async function handleDashboardAPI(
   }
 
   if (req.method === "GET" && url.pathname === "/api/factory-models") {
-    sendJSON(res, 200, ctx.factoryModelsStatus());
+    sendJSON(res, 200, await ctx.factoryModelsStatus());
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/openai-compatible-providers") {
+    sendJSON(res, 200, {
+      providers: normalizeOpenAICompatibleProviders(ctx.settings.openAICompatibleProviders)
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/openai-compatible-providers") {
+    const body = await readJSONRequest(req);
+    const providers = normalizeOpenAICompatibleProviders(body.providers);
+    ctx.settings.openAICompatibleProviders = providers;
+    ctx.saveSettings();
+    ctx.writeConfig();
+    sendJSON(res, 200, {
+      count: providers.length,
+      providers
+    });
     return;
   }
 
@@ -87,8 +109,8 @@ export async function handleDashboardAPI(
       sendJSON(res, 400, { error: "invalid_selection" });
       return;
     }
-    ctx.saveFactoryModelSelection(ids);
-    sendJSON(res, 200, ctx.factoryModelsStatus());
+    await ctx.saveFactoryModelSelection(ids);
+    sendJSON(res, 200, await ctx.factoryModelsStatus());
     return;
   }
 
@@ -170,7 +192,7 @@ export async function handleDashboardAPI(
   }
 
   if (req.method === "POST" && url.pathname === "/api/apply-factory-models") {
-    const result = ctx.applyFactoryCustomModels();
+    const result = await ctx.applyFactoryCustomModels();
     sendJSON(res, 200, result);
     return;
   }

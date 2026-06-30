@@ -32,3 +32,31 @@ test("buildDroidProxyModelDefinitions includes CommandCode catalog entries", () 
   assert.ok(commandCodeEntry);
   assert.match(commandCodeEntry!.baseModel, /^commandcode:/);
 });
+
+test("buildDroidProxyModelDefinitions includes discovered management models", () => {
+  const definitions = buildDroidProxyModelDefinitions(
+    {
+      proxyUrl: () => "http://127.0.0.1:8417",
+      proxyBaseUrl: () => "http://127.0.0.1:8417/v1"
+    },
+    [
+      { id: "cline-pass/deepseek-v4-flash", owned_by: "ClinePass" },
+      { id: "gpt-5.4", owned_by: "codex" }
+    ]
+  );
+
+  const cline = definitions.find((definition) => definition.baseModel === "cline-pass/deepseek-v4-flash");
+  assert.ok(cline);
+  assert.equal(cline!.idSlug, "management-cline-pass-deepseek-v4-flash");
+  assert.equal(cline!.displayName, "ClinePass: DeepSeek V4 Flash");
+  assert.equal(cline!.baseUrl, "http://127.0.0.1:8417/v1");
+  assert.equal(cline!.provider, "generic-chat-completion-api");
+  assert.equal(definitions.filter((definition) => definition.baseModel === "gpt-5.4").length, 1);
+
+  const settingsModels = droidProxySettingsModels(definitions);
+  assert.ok(settingsModels.some((model) => (
+    model.id === "custom:droidproxy:management-cline-pass-deepseek-v4-flash" &&
+    model.displayName === "DroidProxy: ClinePass: DeepSeek V4 Flash" &&
+    model.provider === "generic-chat-completion-api"
+  )));
+});

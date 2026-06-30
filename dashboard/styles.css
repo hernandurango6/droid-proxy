@@ -578,6 +578,77 @@ code { font-family: var(--font-mono); font-size: 0.78rem; }
   box-shadow: var(--ring);
 }
 
+.error-box {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid oklch(0.58 0.12 25 / 0.55);
+  background: var(--bad-bg);
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.model-form-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.model-form-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.model-form-row {
+  display: grid;
+  grid-template-columns: 82px minmax(180px, 1.4fr) minmax(140px, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+}
+
+.model-enabled {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+}
+
+.model-enabled input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--primary);
+}
+
+.model-field {
+  display: grid;
+  gap: 5px;
+}
+
+.model-field input {
+  width: 100%;
+  min-height: 38px;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.model-field input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
+
 /* ===== Lists ===== */
 .data-list { display: grid; gap: 8px; margin-top: 12px; }
 
@@ -872,6 +943,8 @@ code { font-family: var(--font-mono); font-size: 0.78rem; }
   .rail-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .data-row-item { grid-template-columns: 1fr; }
   .data-row-item .data-meta { text-align: left; }
+  .model-form-row { grid-template-columns: 1fr; align-items: stretch; }
+  .model-enabled { min-height: auto; }
   .quota-account { flex-basis: min(320px, 92vw); width: min(320px, 92vw); }
   .quota-alert { grid-template-columns: 1fr; }
   .quota-meta-grid { grid-template-columns: 1fr; }

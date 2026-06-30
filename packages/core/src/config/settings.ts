@@ -2,10 +2,12 @@ import crypto from "crypto";
 import fs from "fs";
 import { getAuthDir, getSettingsPath } from "../constants/paths";
 import { parseCommandCodeApiKeys } from "./commandcode-keys";
+import { normalizeOpenAICompatibleProviders, type OpenAICompatibleProvider } from "./openai-compatible";
 
 export interface AppSettings {
   managementSecretKey: string;
   commandCodeApiKeys: string[];
+  openAICompatibleProviders?: OpenAICompatibleProvider[];
   factoryModelIds?: string[] | null;
   [key: string]: unknown;
 }
@@ -47,6 +49,7 @@ export function normalizeLoadedSettings(loaded: unknown): AppSettings | null {
     ...record,
     managementSecretKey: record.managementSecretKey,
     commandCodeApiKeys,
+    openAICompatibleProviders: normalizeOpenAICompatibleProviders(record.openAICompatibleProviders),
     factoryModelIds: Array.isArray(record.factoryModelIds) ? record.factoryModelIds : null
   } as AppSettings;
 }

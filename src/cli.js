@@ -20,7 +20,6 @@ const {
   droidProxySettingsModels,
   factoryModelsStatus: factoryModelsStatusCore,
   applyFactoryCustomModels: applyFactoryCustomModelsCore,
-  getFactoryModelSelection: getFactoryModelSelectionCore,
   saveFactoryModelSelection: saveFactoryModelSelectionCore,
   getAccounts,
   formatAccountsForCli,
@@ -321,26 +320,32 @@ function factoryRuntimeContext() {
   };
 }
 
-function getDroidProxyModelDefinitions() {
-  return buildDroidProxyModelDefinitions(factoryRuntimeContext());
+async function getDroidProxyModelDefinitions() {
+  let discoveredModels = [];
+  try {
+    discoveredModels = await fetchModels();
+  } catch (error) {
+    pushLog(`Factory model discovery unavailable: ${error.message}`);
+  }
+  return buildDroidProxyModelDefinitions(factoryRuntimeContext(), discoveredModels);
 }
 
-function enabledFactoryModels() {
-  return droidProxySettingsModels(getDroidProxyModelDefinitions());
+async function enabledFactoryModels() {
+  return droidProxySettingsModels(await getDroidProxyModelDefinitions());
 }
 
-function factoryModelsStatus() {
+async function factoryModelsStatus() {
   return factoryModelsStatusCore({
-    definitions: getDroidProxyModelDefinitions(),
+    definitions: await getDroidProxyModelDefinitions(),
     settings,
     factorySettingsPath: FACTORY_SETTINGS_PATH,
     saveSettings
   });
 }
 
-function applyFactoryCustomModels() {
+async function applyFactoryCustomModels() {
   return applyFactoryCustomModelsCore({
-    definitions: getDroidProxyModelDefinitions(),
+    definitions: await getDroidProxyModelDefinitions(),
     settings,
     factorySettingsPath: FACTORY_SETTINGS_PATH,
     saveSettings,
@@ -348,12 +353,8 @@ function applyFactoryCustomModels() {
   });
 }
 
-function getFactoryModelSelection() {
-  return getFactoryModelSelectionCore(settings, enabledFactoryModels(), saveSettings);
-}
-
-function saveFactoryModelSelection(ids) {
-  saveFactoryModelSelectionCore(settings, ids, enabledFactoryModels(), saveSettings);
+async function saveFactoryModelSelection(ids) {
+  saveFactoryModelSelectionCore(settings, ids, await enabledFactoryModels(), saveSettings);
 }
 
 
@@ -363,7 +364,8 @@ function writeConfig() {
     managementSecretKey: settings.managementSecretKey,
     configPath: CONFIG_PATH,
     authDir: AUTH_DIR,
-    backendPort: BACKEND_PORT
+    backendPort: BACKEND_PORT,
+    openAICompatibleProviders: settings.openAICompatibleProviders
   });
 }
 

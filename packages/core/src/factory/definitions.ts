@@ -2,7 +2,10 @@ import { COMMANDCODE_MODELS } from "../constants/commandcode-models";
 import { commandCodeSlug } from "../commandcode/models";
 import type { DroidProxyModelDefinition, FactoryRuntimeContext } from "./types";
 
-export function buildDroidProxyModelDefinitions(ctx: FactoryRuntimeContext): DroidProxyModelDefinition[] {
+export function buildDroidProxyModelDefinitions(
+  ctx: FactoryRuntimeContext,
+  discoveredModels: unknown[] = []
+): DroidProxyModelDefinition[] {
   const low = "low";
   const medium = "medium";
   const high = "high";
@@ -108,7 +111,7 @@ export function buildDroidProxyModelDefinitions(ctx: FactoryRuntimeContext): Dro
     };
   };
 
-  return [
+  const definitions: DroidProxyModelDefinition[] = [
     ...COMMANDCODE_MODELS.map(commandCodeModel),
     {
       baseModel: "claude-fable-5",
@@ -280,4 +283,64 @@ export function buildDroidProxyModelDefinitions(ctx: FactoryRuntimeContext): Dro
       displayName: "Grok 3 Mini Fast"
     })
   ];
+
+  const knownBaseModels = new Set(definitions.map((definition) => definition.baseModel));
+  const knownSlugs = new Set(definitions.map((definition) => definition.idSlug));
+  for (const model of discoveredModels) {
+    const entry = model && typeof model === "object" ? model as Record<string, unknown> : null;
+    const id = typeof entry?.id === "string" ? entry.id.trim() : "";
+    if (!id || knownBaseModels.has(id)) continue;
+
+    const idSlug = `management-${commandCodeSlug(id)}`;
+    if (knownSlugs.has(idSlug)) continue;
+
+    const ownedBy = typeof entry?.owned_by === "string" ? entry.owned_by.trim() : "";
+    const providerName = normalizeProviderDisplayName(ownedBy || "Management");
+    definitions.push({
+      baseModel: id,
+      idSlug,
+      displayName: `${providerName}: ${normalizeModelDisplayName(id)}`,
+      maxOutputTokens: 64000,
+      provider: "generic-chat-completion-api",
+      providerKey: "management",
+      baseUrl: proxyBaseUrl,
+      kind: "management",
+      levels: [],
+      defaultLevel: null
+    });
+    knownBaseModels.add(id);
+    knownSlugs.add(idSlug);
+  }
+
+  return definitions;
+}
+
+function normalizeProviderDisplayName(value: string): string {
+  if (/^clinepass$/i.test(value)) return "ClinePass";
+  if (/^cline$/i.test(value)) return "Cline";
+  return titleCaseIdentifier(value);
+}
+
+function normalizeModelDisplayName(id: string): string {
+  const model = id.split("/").pop() || id;
+  return titleCaseIdentifier(model);
+}
+
+function titleCaseIdentifier(value: string): string {
+  return value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => {
+      if (/^deepseek$/i.test(part)) return "DeepSeek";
+      if (/^minimax$/i.test(part)) return "MiniMax";
+      if (/^mimo$/i.test(part)) return "MiMo";
+      if (/^(glm|gpt|oss|m3)$/i.test(part)) return part.toUpperCase();
+      if (/^k\d+(\.\d+)?$/i.test(part)) return part.toUpperCase();
+      if (/^v\d+(\.\d+)?$/i.test(part)) return part.toUpperCase();
+      if (/^qwen\d+(\.\d+)?$/i.test(part)) {
+        return part.replace(/^qwen/i, "Qwen");
+      }
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join(" ");
 }

@@ -44,10 +44,11 @@
             <a class="rail-link" href="#oauth"><span class="rail-idx">03</span><span>OAuth</span></a>
             <a class="rail-link" href="#management"><span class="rail-idx">04</span><span>Management</span></a>
             <a class="rail-link" href="#keys"><span class="rail-idx">05</span><span>Keys</span></a>
-            <a class="rail-link" href="#factory"><span class="rail-idx">06</span><span>Factory</span></a>
-            <a class="rail-link" href="#accounts"><span class="rail-idx">07</span><span>Accounts</span></a>
-            <a class="rail-link" href="#logs"><span class="rail-idx">08</span><span>Logs</span></a>
-            <a class="rail-link" href="#config"><span class="rail-idx">09</span><span>Config</span></a>
+            <a class="rail-link" href="#openai-compatible"><span class="rail-idx">06</span><span>OpenAI</span></a>
+            <a class="rail-link" href="#factory"><span class="rail-idx">07</span><span>Factory</span></a>
+            <a class="rail-link" href="#accounts"><span class="rail-idx">08</span><span>Accounts</span></a>
+            <a class="rail-link" href="#logs"><span class="rail-idx">09</span><span>Logs</span></a>
+            <a class="rail-link" href="#config"><span class="rail-idx">10</span><span>Config</span></a>
           </nav>
           <div class="rail-foot">
             <p class="rail-foot-label">Instance</p>
@@ -161,10 +162,46 @@
               <div id="commandcode-key-list" class="data-list empty">No configured keys.</div>
             </section>
 
+            <section id="openai-compatible" class="zone zone-config zone-wide">
+              <div class="section-head">
+                <div>
+                  <p class="section-eyebrow">06 / OpenAI-compatible providers</p>
+                  <h2>OpenAI-compatible providers</h2>
+                  <p class="section-lead">Writes local provider entries into the backend config. Restart the lab after saving.</p>
+                </div>
+                <span id="openai-compatible-count" class="status-chip muted">0</span>
+              </div>
+              <form id="openai-compatible-form" class="key-form">
+                <label class="field">
+                  <span class="field-label">Provider name</span>
+                  <input id="openai-compatible-name" type="text" placeholder="ClinePass">
+                </label>
+                <label class="field">
+                  <span class="field-label">Base URL</span>
+                  <input id="openai-compatible-base-url" type="url" placeholder="https://your-clinepass-openai-base-url/v1">
+                </label>
+                <label class="field">
+                  <span class="field-label">API keys</span>
+                  <textarea id="openai-compatible-keys" rows="4" spellcheck="false" placeholder="One key per line, or comma-separated"></textarea>
+                </label>
+                <div class="model-form-head">
+                  <span class="field-label">Models</span>
+                  <button id="add-openai-compatible-model" type="button" class="btn btn-secondary">Add model</button>
+                </div>
+                <div id="openai-compatible-models" class="model-form-list"></div>
+                <div id="openai-compatible-error" class="error-box" hidden></div>
+                <div class="action-row">
+                  <button class="btn btn-primary" type="submit">Save providers</button>
+                  <button id="example-openai-compatible" type="button" class="btn btn-secondary">ClinePass preset</button>
+                  <button id="clear-openai-compatible" type="button" class="btn btn-ghost">Clear</button>
+                </div>
+              </form>
+            </section>
+
             <section id="factory" class="zone zone-config zone-wide">
               <div class="section-head">
                 <div>
-                  <p class="section-eyebrow">06 / Factory custom models</p>
+                  <p class="section-eyebrow">07 / Factory custom models</p>
                   <h2>Factory custom models</h2>
                   <p class="section-lead">Writes DroidProxy aliases into Factory settings with a timestamped backup first.</p>
                 </div>
@@ -191,7 +228,7 @@
             <section class="zone zone-data">
               <div class="section-head">
                 <div>
-                  <p class="section-eyebrow">07 / Accounts</p>
+                  <p class="section-eyebrow">08 / Accounts</p>
                   <h2>Accounts</h2>
                   <p class="section-lead">Authenticated provider sessions on disk.</p>
                 </div>
@@ -220,7 +257,7 @@
           <section class="zone zone-logs">
             <div class="section-head">
               <div>
-                <p class="section-eyebrow">08 / Runtime logs</p>
+                <p class="section-eyebrow">09 / Runtime logs</p>
                 <h2>Runtime logs</h2>
                 <p class="section-lead">Recent proxy and backend output.</p>
               </div>

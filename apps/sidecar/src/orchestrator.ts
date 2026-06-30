@@ -288,26 +288,33 @@ export class SidecarOrchestrator {
     };
   }
 
-  private getDroidProxyModelDefinitions() {
-    return buildDroidProxyModelDefinitions(this.factoryRuntimeContext());
+  private async getDroidProxyModelDefinitions() {
+    let discoveredModels: unknown[] = [];
+    try {
+      discoveredModels = await this.fetchModels();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.pushLog(`Factory model discovery unavailable: ${message}`);
+    }
+    return buildDroidProxyModelDefinitions(this.factoryRuntimeContext(), discoveredModels);
   }
 
-  private enabledFactoryModels() {
-    return droidProxySettingsModels(this.getDroidProxyModelDefinitions());
+  private async enabledFactoryModels() {
+    return droidProxySettingsModels(await this.getDroidProxyModelDefinitions());
   }
 
-  private factoryModelsStatus() {
+  private async factoryModelsStatus() {
     return factoryModelsStatusCore({
-      definitions: this.getDroidProxyModelDefinitions(),
+      definitions: await this.getDroidProxyModelDefinitions(),
       settings: this.settings,
       factorySettingsPath: this.factorySettingsPath,
       saveSettings: () => this.saveSettings()
     });
   }
 
-  private applyFactoryCustomModels() {
+  private async applyFactoryCustomModels() {
     return applyFactoryCustomModelsCore({
-      definitions: this.getDroidProxyModelDefinitions(),
+      definitions: await this.getDroidProxyModelDefinitions(),
       settings: this.settings,
       factorySettingsPath: this.factorySettingsPath,
       saveSettings: () => this.saveSettings(),
@@ -315,11 +322,11 @@ export class SidecarOrchestrator {
     });
   }
 
-  private saveFactoryModelSelection(ids: string[]) {
+  private async saveFactoryModelSelection(ids: string[]) {
     saveFactoryModelSelectionCore(
       this.settings,
       ids,
-      this.enabledFactoryModels(),
+      await this.enabledFactoryModels(),
       () => this.saveSettings()
     );
   }
@@ -363,7 +370,8 @@ export class SidecarOrchestrator {
       managementSecretKey: this.settings.managementSecretKey,
       configPath: this.configPath,
       authDir: this.authDir,
-      backendPort: this.backendPort
+      backendPort: this.backendPort,
+      openAICompatibleProviders: this.settings.openAICompatibleProviders
     });
   }
 

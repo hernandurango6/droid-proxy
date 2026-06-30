@@ -5,6 +5,7 @@ export * from "./constants/commandcode-models";
 export * from "./constants/claude-betas";
 export * from "./config/commandcode-keys";
 export * from "./config/env";
+export * from "./config/openai-compatible";
 export * from "./config/settings";
 export * from "./config/write-config";
 export * from "./http/send-json";

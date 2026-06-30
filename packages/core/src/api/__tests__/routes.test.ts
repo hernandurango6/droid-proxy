@@ -129,6 +129,50 @@ test("handleDashboardAPI serves accounts from context", async () => {
   assert.equal(payload.accounts[0].email, "a@example.com");
 });
 
+test("handleDashboardAPI saves OpenAI-compatible providers in DroidProxy settings", async () => {
+  const mock = createMockResponse();
+  const settings = {
+    managementSecretKey: "x".repeat(32),
+    commandCodeApiKeys: []
+  };
+  let saved = false;
+  let wroteConfig = false;
+
+  await handleDashboardAPI(
+    createRequest("POST", "/api/openai-compatible-providers", {
+      providers: [
+        {
+          name: "Cline",
+          baseUrl: "http://127.0.0.1:1234/v1",
+          apiKeyEntries: [{ apiKey: "key" }],
+          models: [{ name: "cline/sonnet" }]
+        }
+      ]
+    }),
+    mock.res,
+    new URL("http://127.0.0.1:8419/api/openai-compatible-providers"),
+    baseContext({
+      settings,
+      saveSettings: () => { saved = true; },
+      writeConfig: () => { wroteConfig = true; }
+    }) as never
+  );
+
+  const payload = JSON.parse(mock.body) as { count: number };
+  assert.equal(mock.statusCode, 200);
+  assert.equal(payload.count, 1);
+  assert.equal(saved, true);
+  assert.equal(wroteConfig, true);
+  assert.deepEqual(settings.openAICompatibleProviders, [
+    {
+      name: "Cline",
+      baseUrl: "http://127.0.0.1:1234/v1",
+      apiKeyEntries: [{ apiKey: "key" }],
+      models: [{ name: "cline/sonnet" }]
+    }
+  ]);
+});
+
 test("handleDashboardAPI rejects invalid login provider", async () => {
   const mock = createMockResponse();
   await handleDashboardAPI(

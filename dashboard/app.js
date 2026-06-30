@@ -1,11 +1,31 @@
 const providers = ["claude", "codex", "gemini", "antigravity", "kimi", "xai"];
 const quotaProviders = ["claude", "antigravity", "codex", "kimi", "xai"];
 const QUOTA_REFRESH_MS = 120_000;
+const CLINEPASS_MODELS = [
+  "cline-pass/glm-5.2",
+  "cline-pass/kimi-k2.7-code",
+  "cline-pass/kimi-k2.6",
+  "cline-pass/deepseek-v4-pro",
+  "cline-pass/deepseek-v4-flash",
+  "cline-pass/mimo-v2.5",
+  "cline-pass/mimo-v2.5-pro",
+  "cline-pass/minimax-m3",
+  "cline-pass/qwen3.7-max",
+  "cline-pass/qwen3.7-plus"
+];
+const OPENAI_COMPATIBLE_PRESET = {
+  name: "ClinePass",
+  baseUrl: "https://your-clinepass-openai-base-url/v1",
+  apiKeyEntries: [{ apiKey: "your-clinepass-key" }],
+  models: CLINEPASS_MODELS.map((name) => ({ name }))
+};
 const state = {
   endpoint: "",
   modelsExpanded: localStorage.getItem("droidproxy.modelsExpanded") === "true",
   factoryModels: [],
   factorySelectedIds: [],
+  openAICompatibleProviders: [],
+  openAICompatibleDirty: false,
   quotaLoading: false,
   quotaData: null
 };
@@ -23,6 +43,16 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#copy-management-key").addEventListener("click", () => copyText($("#management-key").textContent, "Management key copied."));
   $("#commandcode-key-form").addEventListener("submit", saveCommandCodeKeys);
   $("#clear-commandcode-keys").addEventListener("click", clearCommandCodeKeys);
+  $("#openai-compatible-form").addEventListener("submit", saveOpenAICompatibleProviders);
+  $("#openai-compatible-form").addEventListener("input", () => {
+    state.openAICompatibleDirty = true;
+  });
+  $("#example-openai-compatible").addEventListener("click", fillOpenAICompatibleExample);
+  $("#clear-openai-compatible").addEventListener("click", clearOpenAICompatibleProviders);
+  $("#add-openai-compatible-model").addEventListener("click", () => {
+    addOpenAICompatibleModelRow({ name: "", enabled: true });
+    state.openAICompatibleDirty = true;
+  });
   $("#apply-factory-models").addEventListener("click", applyFactoryModels);
   $("#select-all-factory-models").addEventListener("click", () => updateFactorySelection("all"));
   $("#clear-factory-models").addEventListener("click", () => updateFactorySelection("none"));
@@ -62,6 +92,7 @@ async function refreshAll() {
       loadConfig(),
       loadAccounts(),
       loadModels(),
+      loadOpenAICompatibleProviders(),
       loadFactoryModels(),
       loadLogs()
     ]);
@@ -142,6 +173,135 @@ async function clearCommandCodeKeys() {
   $("#commandcode-key-input").value = "";
   showToast(`Saved ${result.count} CommandCode keys.`);
   await loadConfig();
+}
+
+async function loadOpenAICompatibleProviders() {
+  if (state.openAICompatibleDirty) return;
+  const data = await getJSON("/api/openai-compatible-providers");
+  const providers = data.providers || [];
+  state.openAICompatibleProviders = providers;
+  $("#openai-compatible-count").textContent = String(providers.length);
+  $("#openai-compatible-count").className = `status-chip ${providers.length ? "ok" : "muted"}`;
+  renderOpenAICompatibleForm(providers[0] || null);
+  setOpenAICompatibleError("");
+}
+
+async function saveOpenAICompatibleProviders(event) {
+  event.preventDefault();
+  try {
+    const provider = readOpenAICompatibleForm();
+    const providers = provider ? [provider] : [];
+    const result = await postJSON("/api/openai-compatible-providers", { providers });
+    state.openAICompatibleProviders = result.providers || [];
+    state.openAICompatibleDirty = false;
+    renderOpenAICompatibleForm(state.openAICompatibleProviders[0] || null);
+    $("#openai-compatible-count").textContent = String(result.count || 0);
+    $("#openai-compatible-count").className = `status-chip ${result.count ? "ok" : "muted"}`;
+    setOpenAICompatibleError("");
+    showToast("OpenAI-compatible providers saved. Restart the lab for the backend to load them.");
+    await loadConfig();
+  } catch (error) {
+    setOpenAICompatibleError(error.message);
+  }
+}
+
+function fillOpenAICompatibleExample() {
+  renderOpenAICompatibleForm(OPENAI_COMPATIBLE_PRESET);
+  state.openAICompatibleDirty = true;
+  setOpenAICompatibleError("");
+}
+
+function clearOpenAICompatibleProviders() {
+  renderOpenAICompatibleForm(null);
+  state.openAICompatibleDirty = true;
+  setOpenAICompatibleError("");
+}
+
+function renderOpenAICompatibleForm(provider) {
+  $("#openai-compatible-name").value = provider?.name || "";
+  $("#openai-compatible-base-url").value = provider?.baseUrl || "";
+  $("#openai-compatible-keys").value = (provider?.apiKeyEntries || [])
+    .map((entry) => entry.apiKey)
+    .filter(Boolean)
+    .join("\n");
+
+  const configuredModels = provider?.models?.length
+    ? provider.models.map((model) => ({ name: model.name || "", alias: model.alias || "", enabled: true }))
+    : CLINEPASS_MODELS.map((name) => ({ name, alias: "", enabled: false }));
+  renderOpenAICompatibleModelRows(configuredModels);
+}
+
+function renderOpenAICompatibleModelRows(models) {
+  const container = $("#openai-compatible-models");
+  container.innerHTML = "";
+  for (const model of models) {
+    addOpenAICompatibleModelRow(model);
+  }
+}
+
+function addOpenAICompatibleModelRow(model) {
+  const container = $("#openai-compatible-models");
+  const row = document.createElement("div");
+  row.className = "model-form-row";
+  row.innerHTML = `
+    <label class="model-enabled">
+      <input type="checkbox" class="openai-compatible-model-enabled" ${model.enabled === false ? "" : "checked"}>
+      <span>Use</span>
+    </label>
+    <label class="model-field">
+      <span class="field-label">Model ID</span>
+      <input class="openai-compatible-model-name" type="text" value="${escapeHTML(model.name || "")}" placeholder="provider/model-id">
+    </label>
+    <label class="model-field">
+      <span class="field-label">Alias</span>
+      <input class="openai-compatible-model-alias" type="text" value="${escapeHTML(model.alias || "")}" placeholder="optional">
+    </label>
+    <button type="button" class="btn btn-ghost openai-compatible-model-remove">Remove</button>
+  `;
+  row.querySelector(".openai-compatible-model-remove").addEventListener("click", () => {
+    state.openAICompatibleDirty = true;
+    row.remove();
+  });
+  container.appendChild(row);
+}
+
+function readOpenAICompatibleForm() {
+  const name = $("#openai-compatible-name").value.trim();
+  const baseUrl = $("#openai-compatible-base-url").value.trim();
+  const apiKeys = parseListInput($("#openai-compatible-keys").value);
+  const models = [...document.querySelectorAll(".model-form-row")]
+    .filter((row) => row.querySelector(".openai-compatible-model-enabled").checked)
+    .map((row) => ({
+      name: row.querySelector(".openai-compatible-model-name").value.trim(),
+      alias: row.querySelector(".openai-compatible-model-alias").value.trim() || undefined
+    }))
+    .filter((model) => model.name);
+
+  if (!name && !baseUrl && apiKeys.length === 0 && models.length === 0) return null;
+  if (!name) throw new Error("Provider name is required.");
+  if (!baseUrl) throw new Error("Base URL is required.");
+  if (apiKeys.length === 0) throw new Error("At least one API key is required.");
+  if (models.length === 0) throw new Error("Select or add at least one model.");
+
+  return {
+    name,
+    baseUrl,
+    apiKeyEntries: apiKeys.map((apiKey) => ({ apiKey })),
+    models
+  };
+}
+
+function parseListInput(value) {
+  return String(value || "")
+    .split(/[\r\n,;]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function setOpenAICompatibleError(message) {
+  const box = $("#openai-compatible-error");
+  box.hidden = !message;
+  box.textContent = message || "";
 }
 
 async function loadFactoryModels() {
