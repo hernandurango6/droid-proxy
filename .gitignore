@@ -41,3 +41,6 @@ terminals/
 
 # User-local runtime (never commit)
 *.bak
+
+# Local agent/tooling artifacts
+agent-tools/
